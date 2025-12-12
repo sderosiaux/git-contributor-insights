@@ -113,7 +113,13 @@ func (c *Config) ClassifyByUsername(username string) string {
 
 // Classify classifies a contributor using all available signals
 // Priority: username > email > company > community
+// When no vendors are configured, automatically classifies by email domain
 func (c *Config) Classify(email, company, username string) string {
+	// If no vendors configured, use automatic domain classification
+	if len(c.Vendors) == 0 {
+		return AutoClassifyByDomain(email)
+	}
+
 	// Try username first (most explicit)
 	if vendor := c.ClassifyByUsername(username); vendor != "" {
 		return vendor

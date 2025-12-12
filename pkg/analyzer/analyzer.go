@@ -43,7 +43,12 @@ func (a *Analyzer) Analyze(commits []*types.CommitData, contributors []*types.Co
 		// Classify contributor
 		vendor := a.config.Classify(commit.AuthorEmail, "", "")
 
+		// Get or create metrics for this vendor
 		metrics := vendorMetrics[vendor]
+		if metrics == nil {
+			metrics = types.NewVendorMetrics(vendor)
+			vendorMetrics[vendor] = metrics
+		}
 
 		// Update commit counts
 		metrics.TotalCommits++

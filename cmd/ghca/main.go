@@ -86,12 +86,14 @@ func runAnalyze(cmd *cobra.Command, args []string) {
 		vendors := cfg.GetVendorNames()
 		fmt.Println(green.Render("✓") + " Loaded vendor config: " + joinStrings(vendors, ", "))
 	} else {
-		// Create empty config (all contributors will be "community")
+		// Create empty config (will use automatic domain classification)
 		cfg = &config.Config{
 			Vendors: make(map[string]config.VendorConfig),
 		}
-		fmt.Println(yellow.Render("⚠") + " No vendor config - all contributors will be 'community'")
-		fmt.Println(dim.Render("  Use --config to specify vendor identification rules"))
+		fmt.Println(yellow.Render("ℹ") + " No vendor config - using automatic domain classification")
+		fmt.Println(dim.Render("  Personal emails (gmail, yahoo, etc.) → 'community'"))
+		fmt.Println(dim.Render("  Corporate emails → '@domain' (e.g., '@confluent.io', '@amazon.com')"))
+		fmt.Println(dim.Render("  Use --config to specify custom vendor identification rules"))
 	}
 
 	fmt.Println()
