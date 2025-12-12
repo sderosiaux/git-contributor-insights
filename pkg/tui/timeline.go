@@ -35,6 +35,9 @@ func (d *TimelineDisplay) assignColors() {
 	// Community gets special color
 	d.colors["community"] = lipgloss.Color("7") // white
 
+	// Others gets dim color
+	d.colors["others"] = lipgloss.Color("240") // dim gray
+
 	// Assign colors to other vendors (collect all vendors across all periods)
 	vendorSet := make(map[string]bool)
 	for _, period := range d.timeline.Periods {
@@ -104,19 +107,9 @@ func (d *TimelineDisplay) renderTimelineTable() string {
 		}
 	}
 
-	// Sort vendors (community first, then alphabetically)
-	vendors := make([]string, 0, len(vendorSet))
-	if vendorSet["community"] {
-		vendors = append(vendors, "community")
-	}
-	otherVendors := make([]string, 0)
-	for vendor := range vendorSet {
-		if vendor != "community" {
-			otherVendors = append(otherVendors, vendor)
-		}
-	}
-	sort.Strings(otherVendors)
-	vendors = append(vendors, otherVendors...)
+	// Determine which vendors to show
+	const maxVendorsToShow = 5 // Show top 4 + community, or group extras as "others"
+	vendors := d.getVendorsToDisplay(vendorSet, maxVendorsToShow)
 
 	// Header
 	out.WriteString(fmt.Sprintf("%-15s %10s", "Period", "Total"))
@@ -136,18 +129,32 @@ func (d *TimelineDisplay) renderTimelineTable() string {
 		))
 
 		for _, vendor := range vendors {
-			metrics, ok := period.VendorMetrics[vendor]
-			if !ok || metrics.TotalCommits == 0 {
+			var commits int
+			var pct float64
+
+			if vendor == "others" {
+				// Sum all non-shown vendors
+				commits, pct = d.calculateOthersMetrics(period, vendors)
+			} else {
+				metrics, ok := period.VendorMetrics[vendor]
+				if !ok || metrics.TotalCommits == 0 {
+					out.WriteString(fmt.Sprintf("  %12s", "-"))
+					continue
+				}
+				commits = metrics.TotalCommits
+				pct = period.GetVendorPercentage(vendor, "commits")
+			}
+
+			if commits == 0 {
 				out.WriteString(fmt.Sprintf("  %12s", "-"))
 				continue
 			}
 
-			pct := period.GetVendorPercentage(vendor, "commits")
 			vendorStyle := lipgloss.NewStyle().Foreground(d.colors[vendor])
 
 			// Format: "1,234 (45%)"
 			display := fmt.Sprintf("%s (%.0f%%)",
-				analyzer.FormatNumber(metrics.TotalCommits),
+				analyzer.FormatNumber(commits),
 				pct,
 			)
 			out.WriteString(fmt.Sprintf("  %s", vendorStyle.Render(fmt.Sprintf("%12s", display))))
@@ -156,6 +163,74 @@ func (d *TimelineDisplay) renderTimelineTable() string {
 	}
 
 	return out.String()
+}
+
+// getVendorsToDisplay returns vendors to show (with grouping if needed)
+func (d *TimelineDisplay) getVendorsToDisplay(vendorSet map[string]bool, maxVendors int) []string {
+	// Always show community first
+	vendors := make([]string, 0)
+	if vendorSet["community"] {
+		vendors = append(vendors, "community")
+	}
+
+	// Get other vendors sorted by total commits across all periods
+	otherVendors := make(map[string]int)
+	for vendor := range vendorSet {
+		if vendor != "community" {
+			totalCommits := 0
+			for _, period := range d.timeline.Periods {
+				if metrics, ok := period.VendorMetrics[vendor]; ok {
+					totalCommits += metrics.TotalCommits
+				}
+			}
+			otherVendors[vendor] = totalCommits
+		}
+	}
+
+	// Sort by commit count
+	vendorNames := make([]string, 0, len(otherVendors))
+	for name := range otherVendors {
+		vendorNames = append(vendorNames, name)
+	}
+	sort.Slice(vendorNames, func(i, j int) bool {
+		return otherVendors[vendorNames[i]] > otherVendors[vendorNames[j]]
+	})
+
+	// Show top vendors, group rest as "others"
+	availableSlots := maxVendors - len(vendors) // Subtract community
+	if len(vendorNames) <= availableSlots {
+		// Show all
+		vendors = append(vendors, vendorNames...)
+	} else {
+		// Show top N-1 and group rest as "others"
+		showIndividually := availableSlots - 1
+		vendors = append(vendors, vendorNames[:showIndividually]...)
+		vendors = append(vendors, "others")
+	}
+
+	return vendors
+}
+
+// calculateOthersMetrics sums metrics for vendors not individually shown
+func (d *TimelineDisplay) calculateOthersMetrics(period *analyzer.TimeBreakdown, shownVendors []string) (int, float64) {
+	shownSet := make(map[string]bool)
+	for _, v := range shownVendors {
+		shownSet[v] = true
+	}
+
+	totalCommits := 0
+	for vendor, metrics := range period.VendorMetrics {
+		if !shownSet[vendor] && vendor != "community" {
+			totalCommits += metrics.TotalCommits
+		}
+	}
+
+	pct := 0.0
+	if period.TotalCommits > 0 {
+		pct = (float64(totalCommits) / float64(period.TotalCommits)) * 100
+	}
+
+	return totalCommits, pct
 }
 
 // renderTrendSummary shows key trends

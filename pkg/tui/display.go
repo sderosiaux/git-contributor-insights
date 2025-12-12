@@ -128,27 +128,49 @@ func (d *Display) renderSummaryTable() string {
 	out.WriteString(strings.Repeat("─", 132))
 	out.WriteString("\n")
 
-	// Get sorted vendors
-	vendors := analyzer.GetSortedVendors(d.analysis, "commits", true)
+	// Group vendors if there are too many
+	const maxVendorsToShow = 7
+	var groups []*analyzer.VendorGroup
 
-	for _, vendor := range vendors {
-		metrics := d.analysis.VendorMetrics[vendor]
+	if len(d.analysis.VendorMetrics) > maxVendorsToShow {
+		groups = analyzer.GroupVendors(d.analysis.VendorMetrics, maxVendorsToShow)
+	} else {
+		// Show all vendors without grouping
+		vendors := analyzer.GetSortedVendors(d.analysis, "commits", true)
+		groups = make([]*analyzer.VendorGroup, 0, len(vendors))
+		for _, vendor := range vendors {
+			metrics := d.analysis.VendorMetrics[vendor]
+			groups = append(groups, &analyzer.VendorGroup{
+				Name:               vendor,
+				TotalCommits:       metrics.TotalCommits,
+				TotalAdditions:     metrics.TotalAdditions,
+				TotalDeletions:     metrics.TotalDeletions,
+				UniqueContributors: metrics.UniqueContributors,
+				IsGrouped:          false,
+			})
+		}
+	}
 
-		commitsPct := d.analysis.GetVendorPercentage(vendor, "commits")
-		contributorsPct := d.analysis.GetVendorPercentage(vendor, "contributors")
+	for _, group := range groups {
+		commitsPct := d.calculatePercentage(group.TotalCommits, d.analysis.TotalCommits)
+		contributorsPct := d.calculatePercentage(group.ContributorCount(), d.analysis.TotalContributors)
 
 		// Format the row data first (no styling for alignment)
-		commitsStr := analyzer.FormatNumber(metrics.TotalCommits)
+		commitsStr := analyzer.FormatNumber(group.TotalCommits)
 		commitsPctStr := fmt.Sprintf("%.1f%%", commitsPct)
-		contributorsStr := analyzer.FormatNumber(metrics.ContributorCount())
+		contributorsStr := analyzer.FormatNumber(group.ContributorCount())
 		contributorsPctStr := fmt.Sprintf("%.1f%%", contributorsPct)
-		additionsStr := "+" + analyzer.FormatNumber(metrics.TotalAdditions)
-		deletionsStr := "-" + analyzer.FormatNumber(metrics.TotalDeletions)
-		netChangeStr := analyzer.FormatNumber(metrics.NetChanges())
+		additionsStr := "+" + analyzer.FormatNumber(group.TotalAdditions)
+		deletionsStr := "-" + analyzer.FormatNumber(group.TotalDeletions)
+		netChangeStr := analyzer.FormatNumber(group.NetChanges())
 
 		// Style the vendor name after calculating padding
-		vendorStyle := lipgloss.NewStyle().Foreground(d.colors[vendor])
-		paddedVendor := fmt.Sprintf("%-18s", vendor)
+		color := d.colors[group.Name]
+		if group.IsGrouped {
+			color = lipgloss.Color("240") // dim gray for "others"
+		}
+		vendorStyle := lipgloss.NewStyle().Foreground(color)
+		paddedVendor := fmt.Sprintf("%-18s", group.Name)
 		styledVendor := vendorStyle.Render(paddedVendor)
 
 		out.WriteString(fmt.Sprintf("%s %10s  %10s  %14s  %16s  %15s  %15s  %13s\n",
@@ -164,6 +186,14 @@ func (d *Display) renderSummaryTable() string {
 	}
 
 	return out.String()
+}
+
+// calculatePercentage calculates percentage
+func (d *Display) calculatePercentage(value int, total int) float64 {
+	if total == 0 {
+		return 0
+	}
+	return (float64(value) / float64(total)) * 100
 }
 
 // renderBarChart renders ASCII bar chart for a metric
