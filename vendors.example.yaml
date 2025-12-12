@@ -1,0 +1,57 @@
+# Example vendor configuration for ghca
+# Copy this file and customize for your analysis
+
+vendors:
+  # Confluent (Apache Kafka)
+  confluent:
+    domains:
+      - confluent.io
+    github_companies:
+      - Confluent
+      - Confluent, Inc.
+    usernames:
+      - jkreps          # Jay Kreps (co-founder)
+      - junrao          # Jun Rao (co-founder)
+      - gwenshap        # Gwen Shapira
+      - ijuma           # Ismael Juma
+      - hachikuji       # Jason Gustafson
+
+  # IBM / Red Hat
+  ibm:
+    domains:
+      - ibm.com
+      - redhat.com
+    github_companies:
+      - IBM
+      - Red Hat
+      - International Business Machines
+    usernames: []
+
+  # Amazon / AWS
+  aws:
+    domains:
+      - amazon.com
+      - aws.amazon.com
+    github_companies:
+      - Amazon
+      - Amazon Web Services
+      - AWS
+    usernames: []
+
+  # LinkedIn (original creator of Kafka)
+  linkedin:
+    domains:
+      - linkedin.com
+    github_companies:
+      - LinkedIn
+    usernames: []
+
+  # Cloudera
+  cloudera:
+    domains:
+      - cloudera.com
+    github_companies:
+      - Cloudera
+    usernames: []
+
+# Contributors not matching any vendor will be classified as 'community'
