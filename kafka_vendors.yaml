@@ -35,9 +35,13 @@ vendors:
       - ibm.com
       - us.ibm.com
       - uk.ibm.com
+      - redhat.com
     github_companies:
       - IBM
       - International Business Machines
+      - Red Hat
+      - RedHat
+      - Red Hat, Inc.
   uber:
     domains:
       - uber.com
@@ -58,28 +62,3 @@ vendors:
       - Cloudera
       - Cloudera, Inc.
       - Hortonworks
-  redhat:
-    domains:
-      - redhat.com
-    github_companies:
-      - Red Hat
-      - RedHat
-      - Red Hat, Inc.
-  responsive:
-    domains:
-      - responsive.dev
-    github_companies:
-      - Responsive
-      - Responsive Computing
-  michelin:
-    domains:
-      - michelin.com
-    github_companies:
-      - Michelin
-  transferwise:
-    domains:
-      - transferwise.com
-      - wise.com           # Rebranded to Wise
-    github_companies:
-      - TransferWise
-      - Wise

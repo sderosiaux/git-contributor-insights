@@ -166,87 +166,29 @@ See [kafka_vendors.yaml](kafka_vendors.yaml) for a complete Apache Kafka example
 
 ## 🤖 Creating a Vendor Configuration with AI
 
-Use this workflow to create a vendor configuration for any repository:
+**Quick workflow:**
 
-### Step 1: Run Initial Analysis
+1. Run initial analysis to see all email domains:
+   ```bash
+   ghca analyze /path/to/repo
+   ```
 
-First, analyze the repository without a config to see all email domains:
+2. Use an LLM with this prompt:
+   ```
+   I'm analyzing [PROJECT_NAME] ([DESCRIPTION]).
 
-```bash
-ghca analyze /path/to/repo
-```
+   Email domains in commits: @confluent.io, @apple.com, @aiven.io, @amazon.com...
 
-This shows corporate domains like `@confluent.io`, `@apple.com`, `@redhat.com`, etc.
+   Which companies are in this project's ecosystem? Generate a vendors.yaml config
+   with their domains and GitHub company name variations.
+   ```
 
-### Step 2: Use AI to Identify Ecosystem Companies
+3. Save LLM output as `vendors.yaml` and run:
+   ```bash
+   ghca analyze /path/to/repo --config vendors.yaml
+   ```
 
-Use an LLM (ChatGPT, Claude, etc.) with this prompt:
-
-```
-I'm analyzing the [PROJECT_NAME] repository, which is a [BRIEF_DESCRIPTION].
-
-The following email domains appear in the commit history:
-- @confluent.io
-- @apple.com
-- @aiven.io
-- @amazon.com
-- @redhat.com
-[... add all corporate domains from Step 1 ...]
-
-Please identify:
-1. Which companies operate in the same ecosystem/domain as this project
-2. What their primary business focus is
-3. Any additional email domains they might use (e.g., acquisitions, subsidiaries)
-4. Common variations of their company names in GitHub profiles
-
-Format as a YAML vendor configuration file.
-```
-
-### Step 3: Create vendors.yaml
-
-The LLM will generate a configuration like:
-
-```yaml
-vendors:
-  confluent:
-    domains:
-      - confluent.io
-      - ewencp.org        # Co-founder's domain
-    github_companies:
-      - Confluent
-      - Confluent, Inc.
-
-  redhat:
-    domains:
-      - redhat.com
-    github_companies:
-      - Red Hat
-      - RedHat
-      - Red Hat, Inc.
-```
-
-### Step 4: Verify and Refine
-
-Run the analysis with your new config:
-
-```bash
-ghca analyze /path/to/repo --config vendors.yaml
-```
-
-Review the results and refine as needed:
-- Add missing domains discovered in the output
-- Merge related companies (e.g., acquired companies)
-- Add GitHub company name variations
-
-### Example: Apache Kafka
-
-For Apache Kafka (data streaming platform), the ecosystem includes:
-- **Data streaming companies**: Confluent, Aiven, Responsive
-- **Cloud providers**: AWS, Azure, Google Cloud
-- **Big data platforms**: Cloudera, Hortonworks (merged)
-- **Enterprise adopters**: LinkedIn (creator), Uber, Apple
-
-See [kafka_vendors.yaml](kafka_vendors.yaml) for the complete configuration.
+See [kafka_vendors.yaml](kafka_vendors.yaml) for a complete example.
 
 ## 📈 Timeline Analysis
 
