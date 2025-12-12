@@ -146,10 +146,6 @@ vendors:
     github_companies:
       - Confluent
       - Confluent, Inc.
-    usernames:
-      - jkreps
-      - junrao
-      - gwenshap
 
   aws:
     domains:
@@ -160,7 +156,7 @@ vendors:
       - Amazon Web Services
 ```
 
-**Classification priority:** username > email domain > GitHub company > community (default)
+**Classification priority:** email domain > GitHub company > community (default)
 
 **No config needed:** Without a config file, contributors are automatically classified by email domain:
 - Personal email providers (gmail, yahoo, outlook, etc.) → `community`
@@ -257,7 +253,7 @@ ghca analyze /repo --breakdown quarter --since 2023-01-01
 1. **Clone or use local repository** - Works with any Git repository
 2. **Configure vendors** (optional) - Define vendor identification rules in YAML, or use automatic domain classification
 3. **Concurrent analysis** - Processes commits in parallel using goroutines
-4. **Classification** - Identifies vendors by username, email domain, or GitHub company
+4. **Classification** - Identifies vendors by email domain or GitHub company
 5. **Metrics computation** - Calculates commits, lines changed, and contributor counts
 6. **Visualization** - Beautiful terminal output with color-coded results
 

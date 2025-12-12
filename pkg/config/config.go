@@ -9,9 +9,8 @@ import (
 
 // VendorConfig represents configuration for identifying a vendor
 type VendorConfig struct {
-	Domains          []string `yaml:"domains"`
-	GithubCompanies  []string `yaml:"github_companies"`
-	Usernames        []string `yaml:"usernames"`
+	Domains         []string `yaml:"domains"`
+	GithubCompanies []string `yaml:"github_companies"`
 }
 
 // Config represents the complete configuration file
@@ -92,37 +91,13 @@ func (c *Config) ClassifyByCompany(company string) string {
 	return ""
 }
 
-// ClassifyByUsername classifies a contributor by GitHub username
-func (c *Config) ClassifyByUsername(username string) string {
-	if username == "" {
-		return ""
-	}
-
-	usernameLower := strings.ToLower(username)
-
-	for vendorName, vendor := range c.Vendors {
-		for _, u := range vendor.Usernames {
-			if strings.ToLower(u) == usernameLower {
-				return vendorName
-			}
-		}
-	}
-
-	return ""
-}
-
 // Classify classifies a contributor using all available signals
-// Priority: username > email > company > community
+// Priority: email > company > community
 // When no vendors are configured, automatically classifies by email domain
-func (c *Config) Classify(email, company, username string) string {
+func (c *Config) Classify(email, company string) string {
 	// If no vendors configured, use automatic domain classification
 	if len(c.Vendors) == 0 {
 		return AutoClassifyByDomain(email)
-	}
-
-	// Try username first (most explicit)
-	if vendor := c.ClassifyByUsername(username); vendor != "" {
-		return vendor
 	}
 
 	// Try email domain

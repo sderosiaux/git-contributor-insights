@@ -66,7 +66,7 @@ func AnalyzeTimeline(commits []*types.CommitData, cfg *config.Config, repoName s
 		// Process commits for this period
 		totalCommits := 0
 		for _, commit := range periodCommits {
-			vendor := cfg.Classify(commit.AuthorEmail, "", "")
+			vendor := cfg.Classify(commit.AuthorEmail, "")
 
 			// Get or create metrics for this vendor
 			metrics := vendorMetrics[vendor]

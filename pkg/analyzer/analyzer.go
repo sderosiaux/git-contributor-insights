@@ -41,7 +41,7 @@ func (a *Analyzer) Analyze(commits []*types.CommitData, contributors []*types.Co
 	// Process each commit
 	for _, commit := range commits {
 		// Classify contributor
-		vendor := a.config.Classify(commit.AuthorEmail, "", "")
+		vendor := a.config.Classify(commit.AuthorEmail, "")
 
 		// Get or create metrics for this vendor
 		metrics := vendorMetrics[vendor]

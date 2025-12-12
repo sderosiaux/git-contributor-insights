@@ -6,18 +6,9 @@ vendors:
   confluent:
     domains:
       - confluent.io
-      - ewencp.org        # Ewen Cheslack-Postava (co-founder)
     github_companies:
       - Confluent
       - Confluent, Inc.
-    usernames:
-      - jkreps           # Jay Kreps (co-founder)
-      - gwenshap         # Gwen Shapira
-      - junrao           # Jun Rao (co-founder)
-      - neha             # Neha Narkhede (co-founder)
-      - ewencp           # Ewen Cheslack-Postava
-      - ijuma            # Ismael Juma
-
   linkedin:
     domains:
       - linkedin.com
@@ -25,16 +16,12 @@ vendors:
     github_companies:
       - LinkedIn
       - LinkedIn Corporation
-    usernames: []
-
   aiven:
     domains:
       - aiven.io
     github_companies:
       - Aiven
       - Aiven Ltd
-    usernames: []
-
   aws:
     domains:
       - amazon.com
@@ -43,8 +30,6 @@ vendors:
       - Amazon
       - Amazon Web Services
       - AWS
-    usernames: []
-
   ibm:
     domains:
       - ibm.com
@@ -53,24 +38,18 @@ vendors:
     github_companies:
       - IBM
       - International Business Machines
-    usernames: []
-
   uber:
     domains:
       - uber.com
     github_companies:
       - Uber
       - Uber Technologies
-    usernames: []
-
   apple:
     domains:
       - apple.com
     github_companies:
       - Apple
       - Apple Inc.
-    usernames: []
-
   cloudera:
     domains:
       - cloudera.com
@@ -79,8 +58,6 @@ vendors:
       - Cloudera
       - Cloudera, Inc.
       - Hortonworks
-    usernames: []
-
   redhat:
     domains:
       - redhat.com
@@ -88,23 +65,17 @@ vendors:
       - Red Hat
       - RedHat
       - Red Hat, Inc.
-    usernames: []
-
   responsive:
     domains:
       - responsive.dev
     github_companies:
       - Responsive
       - Responsive Computing
-    usernames: []
-
   michelin:
     domains:
       - michelin.com
     github_companies:
       - Michelin
-    usernames: []
-
   transferwise:
     domains:
       - transferwise.com
@@ -112,4 +83,3 @@ vendors:
     github_companies:
       - TransferWise
       - Wise
-    usernames: []

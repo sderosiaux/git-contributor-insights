@@ -128,27 +128,23 @@ func (d *Display) renderSummaryTable() string {
 	out.WriteString(strings.Repeat("─", 132))
 	out.WriteString("\n")
 
-	// Group vendors if there are too many
-	const maxVendorsToShow = 7
-	var groups []*analyzer.VendorGroup
-
-	if len(d.analysis.VendorMetrics) > maxVendorsToShow {
-		groups = analyzer.GroupVendors(d.analysis.VendorMetrics, maxVendorsToShow)
-	} else {
-		// Show all vendors without grouping
-		vendors := analyzer.GetSortedVendors(d.analysis, "commits", true)
-		groups = make([]*analyzer.VendorGroup, 0, len(vendors))
-		for _, vendor := range vendors {
-			metrics := d.analysis.VendorMetrics[vendor]
-			groups = append(groups, &analyzer.VendorGroup{
-				Name:               vendor,
-				TotalCommits:       metrics.TotalCommits,
-				TotalAdditions:     metrics.TotalAdditions,
-				TotalDeletions:     metrics.TotalDeletions,
-				UniqueContributors: metrics.UniqueContributors,
-				IsGrouped:          false,
-			})
+	// Show all vendors sorted by commits (hide vendors with 0 commits)
+	vendors := analyzer.GetSortedVendors(d.analysis, "commits", true)
+	groups := make([]*analyzer.VendorGroup, 0, len(vendors))
+	for _, vendor := range vendors {
+		metrics := d.analysis.VendorMetrics[vendor]
+		// Skip vendors with no commits
+		if metrics.TotalCommits == 0 {
+			continue
 		}
+		groups = append(groups, &analyzer.VendorGroup{
+			Name:               vendor,
+			TotalCommits:       metrics.TotalCommits,
+			TotalAdditions:     metrics.TotalAdditions,
+			TotalDeletions:     metrics.TotalDeletions,
+			UniqueContributors: metrics.UniqueContributors,
+			IsGrouped:          false,
+		})
 	}
 
 	for _, group := range groups {
@@ -165,11 +161,7 @@ func (d *Display) renderSummaryTable() string {
 		netChangeStr := analyzer.FormatNumber(group.NetChanges())
 
 		// Style the vendor name after calculating padding
-		color := d.colors[group.Name]
-		if group.IsGrouped {
-			color = lipgloss.Color("240") // dim gray for "others"
-		}
-		vendorStyle := lipgloss.NewStyle().Foreground(color)
+		vendorStyle := lipgloss.NewStyle().Foreground(d.colors[group.Name])
 		paddedVendor := fmt.Sprintf("%-18s", group.Name)
 		styledVendor := vendorStyle.Render(paddedVendor)
 

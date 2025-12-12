@@ -35,9 +35,6 @@ func (d *TimelineDisplay) assignColors() {
 	// Community gets special color
 	d.colors["community"] = lipgloss.Color("7") // white
 
-	// Others gets dim color
-	d.colors["others"] = lipgloss.Color("240") // dim gray
-
 	// Assign colors to other vendors (collect all vendors across all periods)
 	vendorSet := make(map[string]bool)
 	for _, period := range d.timeline.Periods {
@@ -107,9 +104,8 @@ func (d *TimelineDisplay) renderTimelineTable() string {
 		}
 	}
 
-	// Determine which vendors to show
-	const maxVendorsToShow = 5 // Show top 4 + community, or group extras as "others"
-	vendors := d.getVendorsToDisplay(vendorSet, maxVendorsToShow)
+	// Show all vendors (sorted by total commits)
+	vendors := d.getVendorsToDisplay(vendorSet)
 
 	// Header
 	out.WriteString(fmt.Sprintf("%-15s %10s", "Period", "Total"))
@@ -129,26 +125,14 @@ func (d *TimelineDisplay) renderTimelineTable() string {
 		))
 
 		for _, vendor := range vendors {
-			var commits int
-			var pct float64
-
-			if vendor == "others" {
-				// Sum all non-shown vendors
-				commits, pct = d.calculateOthersMetrics(period, vendors)
-			} else {
-				metrics, ok := period.VendorMetrics[vendor]
-				if !ok || metrics.TotalCommits == 0 {
-					out.WriteString(fmt.Sprintf("  %12s", "-"))
-					continue
-				}
-				commits = metrics.TotalCommits
-				pct = period.GetVendorPercentage(vendor, "commits")
-			}
-
-			if commits == 0 {
+			metrics, ok := period.VendorMetrics[vendor]
+			if !ok || metrics.TotalCommits == 0 {
 				out.WriteString(fmt.Sprintf("  %12s", "-"))
 				continue
 			}
+
+			commits := metrics.TotalCommits
+			pct := period.GetVendorPercentage(vendor, "commits")
 
 			vendorStyle := lipgloss.NewStyle().Foreground(d.colors[vendor])
 
@@ -165,8 +149,8 @@ func (d *TimelineDisplay) renderTimelineTable() string {
 	return out.String()
 }
 
-// getVendorsToDisplay returns vendors to show (with grouping if needed)
-func (d *TimelineDisplay) getVendorsToDisplay(vendorSet map[string]bool, maxVendors int) []string {
+// getVendorsToDisplay returns all vendors sorted by total commits
+func (d *TimelineDisplay) getVendorsToDisplay(vendorSet map[string]bool) []string {
 	// Always show community first
 	vendors := make([]string, 0)
 	if vendorSet["community"] {
@@ -183,11 +167,14 @@ func (d *TimelineDisplay) getVendorsToDisplay(vendorSet map[string]bool, maxVend
 					totalCommits += metrics.TotalCommits
 				}
 			}
-			otherVendors[vendor] = totalCommits
+			// Only include vendors with commits
+			if totalCommits > 0 {
+				otherVendors[vendor] = totalCommits
+			}
 		}
 	}
 
-	// Sort by commit count
+	// Sort by commit count (descending)
 	vendorNames := make([]string, 0, len(otherVendors))
 	for name := range otherVendors {
 		vendorNames = append(vendorNames, name)
@@ -196,42 +183,11 @@ func (d *TimelineDisplay) getVendorsToDisplay(vendorSet map[string]bool, maxVend
 		return otherVendors[vendorNames[i]] > otherVendors[vendorNames[j]]
 	})
 
-	// Show top vendors, group rest as "others"
-	availableSlots := maxVendors - len(vendors) // Subtract community
-	if len(vendorNames) <= availableSlots {
-		// Show all
-		vendors = append(vendors, vendorNames...)
-	} else {
-		// Show top N-1 and group rest as "others"
-		showIndividually := availableSlots - 1
-		vendors = append(vendors, vendorNames[:showIndividually]...)
-		vendors = append(vendors, "others")
-	}
-
+	// Show all vendors
+	vendors = append(vendors, vendorNames...)
 	return vendors
 }
 
-// calculateOthersMetrics sums metrics for vendors not individually shown
-func (d *TimelineDisplay) calculateOthersMetrics(period *analyzer.TimeBreakdown, shownVendors []string) (int, float64) {
-	shownSet := make(map[string]bool)
-	for _, v := range shownVendors {
-		shownSet[v] = true
-	}
-
-	totalCommits := 0
-	for vendor, metrics := range period.VendorMetrics {
-		if !shownSet[vendor] && vendor != "community" {
-			totalCommits += metrics.TotalCommits
-		}
-	}
-
-	pct := 0.0
-	if period.TotalCommits > 0 {
-		pct = (float64(totalCommits) / float64(period.TotalCommits)) * 100
-	}
-
-	return totalCommits, pct
-}
 
 // renderTrendSummary shows key trends
 func (d *TimelineDisplay) renderTrendSummary() string {
