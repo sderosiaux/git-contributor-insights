@@ -1,0 +1,17 @@
+# Demo configuration for https://github.com/etcd-io/bbolt.
+# These are explicit email-domain rules, not verified employment records.
+# Personal, masked and unlisted domains remain "Unknown affiliation".
+# No current employer is retroactively assigned to a personal email.
+vendors:
+  VMware:
+    domains: [vmware.com]
+  Google:
+    domains: [google.com]
+  Red Hat:
+    domains: [redhat.com]
+  CoreOS:
+    domains: [coreos.com]
+  Amazon:
+    domains: [amazon.com]
+  Ant Group:
+    domains: [antfin.com]

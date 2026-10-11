@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Explore the people and organizations behind your code, and follow how ownership changes over time.">
+  <title>Ownership atlas</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%231c1c1c'/%3E%3Cpath d='M8 23L16 8l8 15M11 18h10' fill='none' stroke='white' stroke-width='2.5' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/routes.js" defer></script>
+  <script src="/timeline.js" defer></script>
+  <script src="/source.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Application navigation">
+      <a class="brand" href="/overview" aria-label="Ownership atlas home"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="currentColor"/><path d="M8 23 16 8l8 15M11 18h10" fill="none" stroke="white" stroke-width="2.2" stroke-linejoin="round"/></svg><span>atlas<span class="brand-subtitle">Ownership explorer</span></span></a>
+      <div class="nav-caption">Workspace</div>
+      <nav class="primary-nav" aria-label="Explore ownership">
+        <a href="/overview" class="nav-item" data-view="overview" aria-label="Overview" title="Overview" aria-current="page"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m3 8 7-5 7 5v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8Z"/><path d="M8 17v-6h4v6"/></svg><span>Overview</span></a>
+        <a href="/codebase" class="nav-item" data-view="codebase" aria-label="Codebase" title="Codebase"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 5a1 1 0 0 1 1-1h4l2 2h6a1 1 0 0 1 1 1v9H3V5Z"/><path d="m8 9-2 2 2 2m4-4 2 2-2 2"/></svg><span>Codebase</span></a>
+        <a href="/evolution" class="nav-item" data-view="evolution" aria-label="Evolution" title="Evolution"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 3v14h14M5 12l4-4 3 2 5-6"/><path d="M13 4h4v4"/></svg><span>Evolution</span></a>
+        <a href="/history" class="nav-item" data-view="history" aria-label="Commits" title="Commits"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 3v14m10-14v5a4 4 0 0 1-4 4H5"/><circle cx="5" cy="6" r="2"/><circle cx="5" cy="14" r="2"/><circle cx="15" cy="5" r="2"/></svg><span>Commits</span></a>
+      </nav>
+      <div class="sidebar-bottom">
+        <button class="nav-item method-nav" id="method-button" aria-label="How it’s measured" title="How it’s measured" aria-haspopup="dialog"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 9v5m0-9v1"/></svg><span>How it’s measured</span></button>
+        <div class="analysis-status"><span class="status-dot"></span><span>Local Git analysis<small id="snapshot-meta">Opening index…</small></span></div>
+      </div>
+    </aside>
+    <div class="app-main">
+      <header class="topbar"><div class="repository-context"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 3h11v14H5a2 2 0 0 1 0-4h10M4 3v12M8 6h4M8 9h4"/></svg><span id="repo-label">Local repository</span><span class="topbar-divider">/</span><span class="topbar-page" id="topbar-page">Overview</span></div><span class="readonly-label"><span class="status-dot"></span>Read-only workspace</span></header>
+      <main id="main" tabindex="-1">
+        <div class="initial-state" id="loading" role="status"><div class="loading-skeleton" aria-hidden="true"><i></i><i></i><i></i></div><h1>Opening your repository</h1><p>Opening the persistent index of every reachable commit and its Git evidence.</p></div>
+        <div id="workspace" hidden>
+          <div class="page-heading"><div><h1 id="page-title">Repository overview</h1><p id="page-description">Find the people behind the code. Choose where to look closer.</p></div><div id="page-context-action"></div></div>
+          <div id="repo-context" class="sr-only"></div>
+          <div id="history-context" class="history-context" hidden></div>
+          <div class="view-toolbar">
+            <div class="view-tabs" role="group" aria-label="Group ownership by"><button id="people-toggle" data-group="people" aria-pressed="true">People</button><button id="organizations-toggle" data-group="organizations" aria-pressed="false">Organizations</button></div>
+            <label class="snapshot-control" id="snapshot-control"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3" y="5" width="14" height="12" rx="2"/><path d="M6 3v4m8-4v4M3 9h14"/></svg><span>As of</span><input id="snapshot-date" type="date" aria-label="Ownership at date"><span class="snapshot-pending" id="snapshot-pending" role="status" hidden></span></label>
+          </div>
+          <div class="filter-toolbar">
+            <div class="segmented metric-toggle" role="group" aria-label="Ownership measurement"><button id="surviving-toggle" data-metric="lines" aria-pressed="true">Surviving code</button><button id="recent-toggle" data-metric="changedLines" aria-pressed="false">Recent changes</button></div>
+            <label class="search-field" id="search-wrapper"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><span class="sr-only">Search paths or contributors</span><input id="search" type="search" autocomplete="off" placeholder="Search paths or contributors…"><kbd>/</kbd></label>
+          </div>
+          <p class="metric-explanation" id="metric-explanation"></p>
+          <div id="warnings"></div>
+          <div class="scope-navigation"><nav class="breadcrumbs" id="breadcrumbs" aria-label="Repository path"></nav><button id="actor-filter" class="actor-filter" hidden></button></div>
+          <section id="overview-screen" data-views="overview" aria-label="Repository overview"><div id="overview-content"></div></section>
+          <section id="history-screen" data-views="history" aria-label="All indexed commits" hidden>
+            <div class="commit-searchbar"><label class="search-field"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg><span class="sr-only">Search every commit</span><input type="search" id="history-search" placeholder="Search by message, author or SHA…" autocomplete="off"></label><label class="commit-date-filter">From<input type="date" id="history-from" aria-label="Commits from date"></label><label class="commit-date-filter">To<input type="date" id="history-to" aria-label="Commits to date"></label><button class="quiet-button" id="history-clear" hidden>Clear filters</button></div>
+            <div class="commit-list-heading"><span id="history-count" role="status"></span><span>All reachable branches · exact code states</span></div>
+            <div id="history-list"></div><div id="history-pagination" class="history-pagination"></div>
+          </section>
+          <section id="codebase-screen" data-views="codebase" aria-label="Codebase ownership" hidden>
+            <div class="scope-overview" id="scope-overview"></div>
+            <div class="explorer-grid">
+              <section class="domain-panel" aria-labelledby="domains-title"><div class="section-heading"><div><h2 id="domains-title">Explore the codebase</h2><p id="domain-subtitle"></p></div><span class="count-label" id="domain-count"></span></div><div class="domain-columns" aria-hidden="true"><span>Path</span><span>Ownership within each path</span><span id="domain-quantity-label">Total lines</span></div><div id="domain-list"></div></section>
+              <aside class="actors-panel" aria-labelledby="actors-title"><div class="section-heading"><div><h2 id="actors-title">People in this scope</h2><p id="actors-subtitle"></p></div><span class="count-label" id="actor-count"></span></div><div id="actor-list"></div><div class="actor-footnote">Select a contributor to trace their code and supporting commits.</div></aside>
+            </div>
+            <section id="source-panel" class="source-panel" aria-labelledby="source-title" hidden></section>
+          </section>
+          <section id="evolution-screen" data-views="evolution" aria-label="Ownership evolution" hidden>
+            <section class="time-panel" aria-labelledby="timeline-title">
+              <div class="section-heading timeline-heading"><div><h2 id="timeline-title">Ownership through time</h2><p id="timeline-caption">Share of attributed code in the selected scope.</p></div></div>
+              <div class="period-control" role="group" aria-label="Comparison period">
+                <div class="period-dates">
+                  <div class="period-date"><span id="period-start-label">Start</span><input id="period-start-date" type="date" aria-label="Period start date"></div>
+                  <button class="period-reset" id="period-reset" aria-label="Compare all available history">All time</button>
+                  <div class="period-date period-date-end"><span id="period-end-label">End</span><input id="period-end-date" type="date" aria-label="Period end date"></div>
+                </div>
+                <div class="period-slider" id="period-slider">
+                  <div class="period-track" id="period-track"><div class="period-selection" id="period-selection"></div><div class="period-ticks" id="period-ticks" aria-hidden="true"></div></div>
+                  <div class="period-handle period-handle-start" id="period-start" role="slider" tabindex="0" aria-labelledby="period-start-label" aria-describedby="period-help" aria-orientation="horizontal"></div>
+                  <div class="period-handle period-handle-end" id="period-end" role="slider" tabindex="0" aria-labelledby="period-end-label" aria-describedby="period-help" aria-orientation="horizontal"></div>
+                </div>
+                <div class="period-global-bounds" aria-hidden="true"><span id="period-global-start"></span><span id="period-global-end"></span></div><div class="period-footer"><div class="period-guidance"><p id="period-help">Drag either end to choose a period.</p><span class="timeline-resolution" id="timeline-resolution" role="status" aria-live="polite"></span></div><div class="comparison-summary" id="comparison-summary"></div></div>
+              </div>
+            <div class="timeline-loading" id="timeline-loading" role="status" hidden><span id="timeline-loading-text"></span><button class="quiet-button" id="period-retry" hidden>Try again</button></div>
+            <section id="change-focus" class="change-focus" aria-label="Selected contributor change" hidden></section>
+              <div class="timeline-chart" id="timeline-chart"></div>
+              <div class="revision-browser" id="revision-browser" hidden><div><span class="revision-browser-count" id="revision-browser-count"></span><span id="revision-browser-date"></span></div><div class="revision-browser-actions"><button class="icon-button" id="revision-previous" aria-label="Previous revision">←</button><button class="quiet-button" id="revision-inspect" aria-haspopup="dialog">Inspect revision</button><button class="icon-button" id="revision-next" aria-label="Next revision">→</button></div></div>
+              <p class="timeline-note" id="timeline-note" hidden></p>
+              <div class="timeline-footer"><div class="timeline-legend" id="timeline-legend"></div></div>
+            </section>
+            <div id="evolution-content"></div>
+          </section>
+          <section class="evidence-panel" id="evidence-panel" data-views="codebase evolution" aria-labelledby="evidence-title" hidden><details id="evidence-disclosure"><summary class="section-heading evidence-heading"><div><h2 id="evidence-title">Supporting commits</h2><p id="evidence-subtitle"></p></div><span class="evidence-heading-end"><span class="count-label" id="evidence-count"></span><svg class="disclosure-chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg></span></summary><div id="evidence-list"></div></details></section>
+          <footer class="workspace-footer"><span>Git attribution shows involvement, not formal responsibility.</span><button class="quiet-button" id="coverage-button">Methods & coverage <span aria-hidden="true">↗</span></button></footer>
+        </div>
+      </main>
+    </div>
+  </div>
+  <dialog id="method-dialog" aria-labelledby="method-title"><div class="dialog-heading"><div><h2 id="method-title">How ownership is measured</h2><p>Understand the signals behind this workspace.</p></div><button id="close-method" class="icon-button" aria-label="Close measurement details">×</button></div><div id="method-content"></div><div class="dialog-footer">All analysis runs against local Git history.</div></dialog>
+  <div class="sr-only" id="announcements" aria-live="polite"></div>
+</body>
+</html>

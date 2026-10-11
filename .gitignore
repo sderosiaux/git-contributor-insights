@@ -24,3 +24,13 @@ Thumbs.db
 
 # Config files (keep example)
 vendors.yaml
+
+# Local ownership indexes (including SQLite sidecars)
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite-journal
+
+# Keep analyzed repositories and runtime caches out of this project's source
+/repos/
+/.cache/

@@ -1,0 +1,29 @@
+# Email-domain signals observed in apache/kafka's Git history.
+# Applied to the original author email at each attribution commit, not to a
+# person's current employer. Personal addresses, GitHub aliases and apache.org
+# remain unknown: an Apache committer address does not establish employment.
+vendors:
+  Confluent:
+    domains: [confluent.io]
+  Aiven:
+    domains: [aiven.io]
+  LinkedIn:
+    domains: [linkedin.com]
+  Amazon:
+    domains: [amazon.com]
+  IBM:
+    domains: [ibm.com, us.ibm.com, uk.ibm.com]
+  Cloudera:
+    domains: [cloudera.com]
+  Apple:
+    domains: [apple.com]
+  Uber:
+    domains: [uber.com]
+  Hortonworks:
+    domains: [hortonworks.com]
+  Red Hat:
+    domains: [redhat.com]
+  Michelin:
+    domains: [michelin.com]
+  Responsive:
+    domains: [responsive.dev]

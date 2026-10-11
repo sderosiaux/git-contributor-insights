@@ -23,9 +23,11 @@ var (
 
 	rootCmd = &cobra.Command{
 		Use:   "ghca",
-		Short: "GitHub Contributor Analyzer - Analyze contributor patterns in repositories",
-		Long: `GitHub Contributor Analyzer (ghca) is a fast tool to analyze Git repository
-contributor patterns, identifying vendor vs community contributions.`,
+		Short: "Explore Git ownership and contributor patterns over time",
+		Long: `Git Contributor Insights (ghca) explores who contributed the code present
+at each point in a repository's history. Compare people, organizations and paths
+in a local browser with explore, export JSON with ownership, or use analyze for
+the original commit-volume report.`,
 	}
 
 	analyzeCmd = &cobra.Command{
