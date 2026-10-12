@@ -33,16 +33,17 @@ type runtimeRepo struct {
 	views    map[string]*generation
 }
 type manager struct {
-	mu     sync.Mutex
-	repos  map[int64]*runtimeRepo
-	store  *store
-	cfg    Config
-	github *github
-	ctx    context.Context
-	wake   chan struct{}
-	done   chan struct{}
-	worker func(context.Context, string, string, string, func(ownership.IndexStatus)) error
-	fetch  func(context.Context, githubRepo, string) (string, error)
+	mu      sync.Mutex
+	repos   map[int64]*runtimeRepo
+	store   *store
+	cfg     Config
+	github  *github
+	ctx     context.Context
+	wake    chan struct{}
+	done    chan struct{}
+	warming sync.WaitGroup
+	worker  func(context.Context, string, string, string, func(ownership.IndexStatus)) error
+	fetch   func(context.Context, githubRepo, string) (string, error)
 }
 
 func newManager(ctx context.Context, c Config, st *store, g *github) (*manager, error) {
@@ -68,9 +69,51 @@ func (m *manager) notify() {
 	default:
 	}
 }
-func (m *manager) start() { go m.loop(); m.notify() }
+func (m *manager) start() {
+	m.warming.Add(1)
+	go func() {
+		defer m.warming.Done()
+		m.warmReadyViews()
+	}()
+	go m.loop()
+	m.notify()
+}
+
+// Reopen saved analyses in the background after a restart. HTML and assets do
+// not wait for this work; data requests share the same protected handler cache.
+func (m *manager) warmReadyViews() {
+	type target struct {
+		repo *runtimeRepo
+		head string
+	}
+	m.mu.Lock()
+	var targets []target
+	for _, r := range m.repos {
+		if !r.Archived && r.Head != "" {
+			targets = append(targets, target{r, r.Head})
+		}
+	}
+	m.mu.Unlock()
+	for _, t := range targets {
+		if m.ctx.Err() != nil {
+			return
+		}
+		t.repo.serveMu.Lock()
+		if t.repo.views[t.head] == nil {
+			view, err := m.openGeneration(t.repo, t.head)
+			if err == nil {
+				t.repo.cacheGeneration(t.head, view)
+			} else if m.ctx.Err() == nil {
+				log.Printf("prepare saved analysis %s: %v", t.repo.Name, err)
+			}
+		}
+		t.repo.serveMu.Unlock()
+	}
+}
+
 func (m *manager) close() {
 	<-m.done
+	m.warming.Wait()
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, r := range m.repos {
@@ -298,6 +341,20 @@ func (m *manager) openGeneration(r *runtimeRepo, head string) (*generation, erro
 	return &generation{idx, handler}, nil
 }
 func (m *manager) serve(w http.ResponseWriter, req *http.Request, r *runtimeRepo, head, path string) {
+	page := req.Clone(req.Context())
+	u := *req.URL
+	u.Path = path
+	u.RawPath = ""
+	page.URL = &u
+	if !strings.HasPrefix(path, "/api/") {
+		handler, err := explorer.NewStaticHandler(explorer.HandlerOptions{Hosted: true, BasePath: "/r/" + r.Name})
+		if err != nil {
+			jsonError(w, 500, "Unable to open the explorer")
+			return
+		}
+		handler.ServeHTTP(w, page)
+		return
+	}
 	for {
 		r.serveMu.RLock()
 		if r.views[head] != nil {
@@ -323,11 +380,6 @@ func (m *manager) serve(w http.ResponseWriter, req *http.Request, r *runtimeRepo
 	}
 	v := r.views[head]
 	defer r.serveMu.RUnlock()
-	page := req.Clone(req.Context())
-	u := *req.URL
-	u.Path = path
-	u.RawPath = ""
-	page.URL = &u
 	v.handler.ServeHTTP(w, page)
 }
 func (m *manager) runWorker(ctx context.Context, repo, head, db string, progress func(ownership.IndexStatus)) error {

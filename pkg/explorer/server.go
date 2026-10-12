@@ -118,6 +118,12 @@ type HandlerOptions struct {
 	BasePath string
 }
 
+// NewStaticHandler serves the explorer shell and assets without opening an index.
+// Hosted callers must apply the same authentication boundary as for data APIs.
+func NewStaticHandler(options HandlerOptions) (http.Handler, error) {
+	return newWorkspaceHandler(func(*http.ServeMux, *evidenceRegistry) {}, options)
+}
+
 func newWorkspaceHandler(registerAPI func(*http.ServeMux, *evidenceRegistry), options ...HandlerOptions) (http.Handler, error) {
 	var opts HandlerOptions
 	if len(options) > 0 {

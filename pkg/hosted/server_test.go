@@ -437,3 +437,35 @@ func TestRefreshFailureKeepsOldVersionAndRetryReusesCommits(t *testing.T) {
 		t.Fatal("old shared link broke after successful refresh")
 	}
 }
+
+func TestExplorerShellDoesNotWaitForIndexOpening(t *testing.T) {
+	c := testConfig(t)
+	s, err := New(context.Background(), c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	head := strings.Repeat("a", 40)
+	// The registry is available, but this fixture intentionally has no Git files.
+	// Serving a shell or asset must not try to reopen its saved index.
+	repo := &runtimeRepo{Repository: Repository{ID: 42, Name: "conduktor/cold", Head: head, State: "ready", Generations: []string{head}}, views: map[string]*generation{}}
+	s.manager.mu.Lock()
+	s.manager.repos[42] = repo
+	s.manager.mu.Unlock()
+	for _, path := range []string{"overview", "evolution", "codebase", "history", "ai", "routes.js", "app.js", "styles.css"} {
+		w := testRequest(s, "GET", "/r/conduktor/cold/"+path+"?index="+head, "", "", "")
+		if w.Code != 200 {
+			t.Fatalf("shell %s waited for a missing index: %d", path, w.Code)
+		}
+	}
+	repo.serveMu.RLock()
+	cached := len(repo.views)
+	repo.serveMu.RUnlock()
+	if cached != 0 {
+		t.Fatal("static requests opened an index")
+	}
+	w := testRequest(s, "GET", "/r/conduktor/cold/api/ownership?index="+head, "", "", "")
+	if w.Code != 503 {
+		t.Fatal("data request pretended the missing index was available")
+	}
+}
