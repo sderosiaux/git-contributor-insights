@@ -22,15 +22,16 @@ type SourceFile struct {
 }
 
 type SourceBlock struct {
-	Start          int    `json:"start"`
-	End            int    `json:"end"`
-	PersonID       string `json:"personId"`
-	OrganizationID string `json:"organizationId"`
-	Author         string `json:"author"`
-	SHA            string `json:"sha"`
-	Path           string `json:"path"`
-	Date           string `json:"date"`
-	Summary        string `json:"summary"`
+	AI             []AISignal `json:"ai,omitempty"`
+	Start          int        `json:"start"`
+	End            int        `json:"end"`
+	PersonID       string     `json:"personId"`
+	OrganizationID string     `json:"organizationId"`
+	Author         string     `json:"author"`
+	SHA            string     `json:"sha"`
+	Path           string     `json:"path"`
+	Date           string     `json:"date"`
+	Summary        string     `json:"summary"`
 }
 
 func (index *Index) Source(ctx context.Context, sha, filename string) (*SourceFile, error) {
@@ -86,6 +87,7 @@ func (index *Index) Source(ctx context.Context, sha, filename string) (*SourceFi
 				}
 				person := resolved[personID(commit)]
 				block = SourceBlock{Start: start, End: start + count - 1, SHA: commit.sha, PersonID: person, OrganizationID: base.config.organization(commit), Author: people[person].Name, Date: commit.authored.Format(time.RFC3339), Summary: commit.summary}
+				block.AI = commit.ai
 				continue
 			}
 		}

@@ -47,16 +47,17 @@ type CommitFilter struct {
 }
 
 type Commit struct {
-	SHA         string   `json:"sha"`
-	Parents     []string `json:"parents"`
-	Date        string   `json:"date"`
-	AuthorName  string   `json:"authorName"`
-	AuthorEmail string   `json:"authorEmail"`
-	Summary     string   `json:"summary"`
-	Mainline    bool     `json:"mainline"`
-	Refs        []string `json:"refs"`
-	Lines       int      `json:"lines"`
-	Files       int      `json:"files"`
+	AI          []AISignal `json:"ai,omitempty"`
+	SHA         string     `json:"sha"`
+	Parents     []string   `json:"parents"`
+	Date        string     `json:"date"`
+	AuthorName  string     `json:"authorName"`
+	AuthorEmail string     `json:"authorEmail"`
+	Summary     string     `json:"summary"`
+	Mainline    bool       `json:"mainline"`
+	Refs        []string   `json:"refs"`
+	Lines       int        `json:"lines"`
+	Files       int        `json:"files"`
 }
 
 type CommitPage struct {

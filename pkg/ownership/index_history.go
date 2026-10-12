@@ -203,6 +203,7 @@ func (index *Index) commitRecord(ctx context.Context, sha string) (*Commit, erro
 	}
 	_, mainline := index.revisionPositions[sha]
 	result := &Commit{SHA: sha, Parents: append([]string{}, commit.parents...), Date: commit.committed.Format(time.RFC3339), AuthorName: commit.name, AuthorEmail: commit.email, Summary: commit.summary, Mainline: mainline, Refs: append([]string{}, index.refs[sha]...)}
+	result.AI = commit.ai
 	err := index.db.QueryRowContext(ctx, "SELECT lines,files FROM revision_stats WHERE fingerprint=? AND sha=?", index.fingerprint, sha).Scan(&result.Lines, &result.Files)
 	if err == sql.ErrNoRows {
 		// Earlier index versions already have exact ownership blobs. Derive only

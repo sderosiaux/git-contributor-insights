@@ -55,6 +55,42 @@ test('unsupported encodings fail explicitly rather than drawing false ownership'
   assert.throws(()=>project({points:[],encoding:'future-v9',group:'people',metric:'lines'}),/Unsupported/);
 });
 
+test('a late contributor remains visible over full history and when zoomed',()=>{
+  const founders=Array.from({length:5},(_,i)=>value('founder-'+i,'company-'+i,20,20));
+  const points=Array.from({length:100},(_,i)=>point(String(i),new Date(Date.UTC(2020,0,i+1)).toISOString(),i===0?founders:[]));
+  points.push(point('arrival','2020-05-01T00:00:00Z',[value('emma','new-company',90,90)]));
+  for(const group of ['people','organizations'])for(const metric of ['lines','changedLines']){
+    const actor=group==='people'?'emma':'new-company';
+    const options={points,encoding:'changes-v1',group,metric};
+    const full=project(options),zoom=project({...options,from:Date.parse('2020-05-01')});
+    assert.equal(full.ranked.indexOf(actor),5,'late arrival is not a historical top-five author');
+    assert.ok(full.shown.includes(actor));assert.ok(zoom.shown.includes(actor));
+    assert.equal(full.points.at(-1).counts.get(actor),90);
+    assert.equal(full.points.at(-1).total,zoom.points.at(-1).total);
+  }
+});
+
+test('middle-period leaders and unchanged contributors crossing 10% stay visible',()=>{
+  const initial=Array.from({length:6},(_,i)=>value('large-'+i,'org',100,0));initial.push(value('steady','org',20,0));
+  const points=Array.from({length:100},(_,i)=>point(String(i),new Date(Date.UTC(2020,0,i+1)).toISOString(),i?[]:initial));
+  points.push(point('brief','2020-05-01',[value('brief-leader','org',400,0)]));
+  points.push(point('shrink','2020-05-02',[...initial.filter(x=>x.personId!=='steady').map(x=>({...x,lines:0})),value('brief-leader','org',0,0)]));
+  points.push(point('restore','2020-05-03',initial));
+  const result=project({points,encoding:'changes-v1',group:'people',metric:'lines'});
+  assert.ok(result.shown.includes('brief-leader'));
+  assert.ok(result.shown.includes('steady'),'denominator shrink must count even if this author has no sparse update');
+  assert.equal(result.points.length,103);
+});
+
+test('show all expands actor categories without changing any state or denominator',()=>{
+  const values=Array.from({length:80},(_,i)=>value('p'+i,'org',i+1,i+1));
+  const options={points:[point('all','2020-01-01',values)],encoding:'changes-v1',group:'people',metric:'lines'};
+  const compact=project(options),all=project({...options,includeAll:true});
+  assert.equal(all.shown.length,80);assert.equal(all.hasOthers,false);assert.equal(all.points[0].other,0);
+  assert.equal(all.points[0].total,compact.points[0].total);
+  assert.equal([...all.points[0].counts.values()].reduce((a,b)=>a+b,0),compact.points[0].total);
+});
+
 test('one hit surface resolves exact states and timestamp collisions without sampling',()=>{
   const {nearestPoint}=require('./assets/timeline.js');
   const points=['2020-01-01','2020-01-03','2020-01-03','2020-01-10'].map(date=>({date}));

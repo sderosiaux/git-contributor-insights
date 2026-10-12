@@ -50,6 +50,7 @@ func NewIndexedHandler(index IndexSource, from, to string, retry func()) (http.H
 	historyBounds := map[string]ownership.Timeline{}
 	return newWorkspaceHandler(func(mux *http.ServeMux, evidence *evidenceRegistry) {
 		registerSourceAPI(mux, index)
+		registerAIAPI(mux, index)
 		mux.HandleFunc("GET /api/index", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json; charset=utf-8")
 			w.Header().Set("Cache-Control", "no-store")

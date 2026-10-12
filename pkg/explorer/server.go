@@ -150,19 +150,24 @@ func newWorkspaceHandler(registerAPI func(*http.ServeMux, *evidenceRegistry)) (h
 	files := http.FileServer(http.FS(static))
 	mux.Handle("GET /", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case "/ai":
+			page := r.Clone(r.Context())
+			page.URL.Path = "/ai.html"
+			page.URL.RawPath = ""
+			files.ServeHTTP(w, page)
 		case "/", "/overview", "/codebase", "/evolution", "/history":
 			// Each workspace is a real entry point, including on a hard refresh.
 			page := r.Clone(r.Context())
 			page.URL.Path = "/"
 			page.URL.RawPath = ""
 			files.ServeHTTP(w, page)
-		case "/overview/", "/codebase/", "/evolution/", "/history/":
+		case "/overview/", "/codebase/", "/evolution/", "/history/", "/ai/":
 			target := strings.TrimSuffix(r.URL.Path, "/")
 			if r.URL.RawQuery != "" {
 				target += "?" + r.URL.RawQuery
 			}
 			http.Redirect(w, r, target, http.StatusPermanentRedirect)
-		case "/app.js", "/routes.js", "/timeline.js", "/source.js", "/styles.css":
+		case "/app.js", "/routes.js", "/timeline.js", "/source.js", "/styles.css", "/ai.js", "/ai.css":
 			files.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)

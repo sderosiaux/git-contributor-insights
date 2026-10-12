@@ -1,7 +1,7 @@
 /* Exact sparse-series projection. Every input state stays available; only visible actor buckets are retained. */
 ((root) => {
   'use strict';
-  function project({points,encoding,group,metric,from=-Infinity,to=Infinity,selectedActor='',limit=5}) {
+  function project({points,encoding,group,metric,from=-Infinity,to=Infinity,selectedActor='',limit=5,includeAll=false}) {
     if(encoding&&encoding!=='changes-v1')throw new Error('Unsupported ownership series encoding: '+encoding);
     const sparse=encoding==='changes-v1',actorOf=value=>group==='people'?value.personId:value.organizationId;
     const amount=value=>Math.max(0,Number(value[metric])||0);
@@ -24,17 +24,27 @@
         if(time>=from)callback(point,counts,total,changed);
       }
     }
-    // Integrate each actor's share over the number of unchanged states, rather
-    // than visiting every actor at every point merely to pick the legend.
-    const totals=new Map(),previous=new Map(),last=new Map();let position=0;
+    // Overall volume alone hides late arrivals, even a leader at the end. Keep
+    // the overall and endpoint leaders, plus anyone reaching 10% in any state.
+    // This selects visible categories only; no history points are sampled.
+    const totals=new Map(),previous=new Map(),last=new Map(),significant=new Set();let position=0,lastTotal=0,endCounts;
     visit((point,counts,total,changed)=>{
       const ids=position===0?counts.keys():changed;
       for(const id of ids){totals.set(id,(totals.get(id)||0)+(position-(last.get(id)||0))*(previous.get(id)||0));last.set(id,position);previous.set(id,counts.get(id)||0);}
+      // When the denominator shrinks, unchanged actors can cross the threshold.
+      // Otherwise only actors whose amounts changed can gain share.
+      const candidates=position===0||total<lastTotal?counts.keys():changed;
+      if(total>0)for(const id of candidates)if((counts.get(id)||0)/total>=.1)significant.add(id);
+      lastTotal=total;endCounts=counts;
       ++position;
     });
     for(const [id,value] of previous)totals.set(id,(totals.get(id)||0)+(position-(last.get(id)||0))*value);
-    const ranked=[...totals].filter(([,value])=>value>0).sort((a,b)=>b[1]-a[1]||String(a[0]).localeCompare(String(b[0]))).map(([id])=>id),shown=ranked.slice(0,limit);
-    if(ranked.includes('unknown')&&!shown.includes('unknown')){if(shown.length>=limit)shown.pop();shown.push('unknown');}
+    const ranked=[...totals].filter(([,value])=>value>0).sort((a,b)=>b[1]-a[1]||String(a[0]).localeCompare(String(b[0]))).map(([id])=>id);
+    const endpoint=[...(endCounts||[])].filter(([,value])=>value>0).sort((a,b)=>b[1]-a[1]||String(a[0]).localeCompare(String(b[0]))).slice(0,limit).map(([id])=>id);
+    const endpointShares=[...(endCounts||[])].filter(([,value])=>lastTotal>0&&value/lastTotal>=.05).map(([id])=>id);
+    const included=new Set([...ranked.slice(0,limit),...endpoint,...endpointShares,...significant]);
+    const shown=includeAll?[...ranked]:ranked.filter(id=>included.has(id));
+    if(ranked.includes('unknown')&&!shown.includes('unknown'))shown.push('unknown');
     if(selectedActor&&ranked.includes(selectedActor)&&!shown.includes(selectedActor))shown.push(selectedActor);
     const projected=[];
     visit((point,counts,total)=>{

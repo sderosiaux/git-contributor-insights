@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Explore the people and organizations behind your code, and follow how ownership changes over time.">
+  <title>Ownership atlas</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%231c1c1c'/%3E%3Cpath d='M8 23L16 8l8 15M11 18h10' fill='none' stroke='white' stroke-width='2.5' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/ai.css">
+  <script src="/ai.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Application navigation">
+      <a class="brand" href="/overview" aria-label="Ownership atlas home"><svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="currentColor"/><path d="M8 23 16 8l8 15M11 18h10" fill="none" stroke="white" stroke-width="2.2" stroke-linejoin="round"/></svg><span>atlas<span class="brand-subtitle">Ownership explorer</span></span></a>
+      <div class="nav-caption">Workspace</div>
+      <nav class="primary-nav" aria-label="Explore ownership">
+        <a href="/overview" class="nav-item" data-view="overview" aria-label="Overview" title="Overview"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m3 8 7-5 7 5v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8Z"/><path d="M8 17v-6h4v6"/></svg><span>Overview</span></a>
+        <a href="/codebase" class="nav-item" data-view="codebase" aria-label="Codebase" title="Codebase"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 5a1 1 0 0 1 1-1h4l2 2h6a1 1 0 0 1 1 1v9H3V5Z"/><path d="m8 9-2 2 2 2m4-4 2 2-2 2"/></svg><span>Codebase</span></a>
+        <a href="/evolution" class="nav-item" data-view="evolution" aria-label="Evolution" title="Evolution"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 3v14h14M5 12l4-4 3 2 5-6"/><path d="M13 4h4v4"/></svg><span>Evolution</span></a>
+        <a href="/history" class="nav-item" data-view="history" aria-label="Commits" title="Commits"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 3v14m10-14v5a4 4 0 0 1-4 4H5"/><circle cx="5" cy="6" r="2"/><circle cx="5" cy="14" r="2"/><circle cx="15" cy="5" r="2"/></svg><span>Commits</span></a>
+        <a href="/ai" class="nav-item" aria-current="page" aria-label="AI contributions" title="AI contributions"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m10 2 2.2 5.8L18 10l-5.8 2.2L10 18l-2.2-5.8L2 10l5.8-2.2L10 2Z"/></svg><span>AI contributions</span></a>
+      </nav>
+      <div class="sidebar-bottom">
+        <a href="#ai-method" class="nav-item method-nav" id="method-button" aria-label="How it’s measured" title="How it’s measured" aria-haspopup="dialog"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="M10 9v5m0-9v1"/></svg><span>How it’s measured</span></a>
+        <div class="analysis-status"><span class="status-dot"></span><span>Local Git analysis<small id="snapshot-meta">Opening index…</small></span></div>
+      </div>
+    </aside>
+    <div class="app-main">
+      <header class="topbar"><div class="repository-context"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 3h11v14H5a2 2 0 0 1 0-4h10M4 3v12M8 6h4M8 9h4"/></svg><span id="repo-label">Local repository</span><span class="topbar-divider">/</span><span class="topbar-page" id="topbar-page">AI contributions</span></div><span class="readonly-label"><span class="status-dot"></span>Read-only workspace</span></header>
+      <main id="main" tabindex="-1" class="ai-workspace">
+        <div class="page-heading"><div><h1>AI contributions</h1><p>See where AI assistance is declared, who uses it, and which contributions remain.</p></div><a class="quiet-button" href="/history">Explore every commit ↗</a></div>
+        <form id="ai-filters" class="ai-filters" aria-label="Filter AI contributions">
+          <label>From<input id="ai-from" name="from" type="date"></label>
+          <label>To<input id="ai-to" name="to" type="date"></label>
+          <button type="button" class="quiet-button" id="ai-recent">Last 90 days</button>
+          <button type="button" class="quiet-button" id="ai-all-time">All time</button>
+          <span class="ai-filter-divider"></span>
+          <label>Person<select id="ai-person" name="person"><option value="">Everyone</option></select></label>
+          <label>Tool<select id="ai-tool" name="tool"><option value="">Any AI tool</option></select></label>
+          <label class="ai-path-filter">Path<input id="ai-path" name="path" placeholder="Entire repository" autocomplete="off"></label>
+          <button class="quiet-button" type="submit">Apply</button>
+          <button class="quiet-button" type="button" id="ai-clear" hidden>Reset</button>
+        </form>
+        <div class="ai-status" id="ai-status" role="status" aria-live="polite"><span class="source-spinner"></span> Reading AI provenance…</div>
+        <div id="ai-results" aria-busy="true"></div>
+        <details id="ai-method" class="ai-method"><summary>How to read these signals</summary><div>
+          <p><strong>Declared assistance, not a code detector.</strong> We recognize explicit co-author / assistance trailers, generated-with declarations and known agent author identities. A tool name in a regular commit subject is not enough. Each result includes the original marker.</p>
+          <p><strong>No marker means unidentified.</strong> Git cannot establish that someone did not use AI. Markers do not prove that every line in the commit was generated. These figures describe recorded declarations, not productivity or quality.</p>
+          <p><strong>Every reachable commit, once per SHA.</strong> Dates use recorded UTC committer dates. Merges and branch commits are included; a repeated trailer inside one commit counts once. Squashed or copied commits with different SHAs remain distinct Git records. The denominator is all commits by that person in the selected period and path, including commits without markers.</p>
+          <p><strong>Still represented at the end date.</strong> A marked commit counts when at least one included line is still attributed to it on the indexed HEAD history at that date. This is not a line survival percentage. Absence can mean the code was changed, deleted, excluded, or the commit was not yet integrated. Renamed files use their path at that date.</p>
+          <p><strong>Paths and identities.</strong> Domain counts use included text-file changes; a commit can touch several domains. People use the same mailmap and name grouping as the ownership explorer. For agent-authored commits, the Git author is shown; a co-author declaration alone does not verify who operated the agent.</p>
+        </div></details>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

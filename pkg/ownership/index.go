@@ -70,6 +70,8 @@ type Index struct {
 	stateMu           sync.Mutex
 	states            map[string]*revisionState
 	stateOrder        []string
+	aiMu              sync.Mutex
+	aiCatalog         *aiCatalog
 }
 
 func OpenIndex(ctx context.Context, repoPath string, options Options, dbPath string) (*Index, error) {

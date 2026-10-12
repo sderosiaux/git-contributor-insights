@@ -22,6 +22,7 @@ const maxBlobBytes = 1024 * 1024
 
 type commitInfo struct {
 	sha, name, email, rawEmail, summary string
+	ai                                  []AISignal
 	authored, committed                 time.Time
 	parents                             []string
 }
@@ -258,15 +259,15 @@ func (e *engine) gitInput(input []byte, args ...string) ([]byte, error) {
 }
 
 func (e *engine) readCommits(head string) error {
-	output, err := e.git("log", "-z", "--format=%H%x00%aN%x00%aE%x00%ae%x00%at%x00%ct%x00%s%x00%P", head)
+	output, err := e.git("log", "-z", "--format=%H%x00%aN%x00%aE%x00%ae%x00%at%x00%ct%x00%s%x00%P%x00%B", head)
 	if err != nil {
 		return err
 	}
 	fields := bytes.Split(bytes.TrimSuffix(output, []byte{0}), []byte{0})
-	if len(fields)%8 != 0 {
+	if len(fields)%9 != 0 {
 		return fmt.Errorf("unexpected Git commit metadata format")
 	}
-	for i := 0; i < len(fields); i += 8 {
+	for i := 0; i < len(fields); i += 9 {
 		authorTime, err := strconv.ParseInt(string(fields[i+4]), 10, 64)
 		if err != nil {
 			return fmt.Errorf("invalid author timestamp: %w", err)
@@ -277,6 +278,7 @@ func (e *engine) readCommits(head string) error {
 		}
 		c := commitInfo{sha: string(fields[i]), name: string(fields[i+1]), email: string(fields[i+2]), rawEmail: string(fields[i+3]), authored: time.Unix(authorTime, 0).UTC(), committed: time.Unix(commitTime, 0).UTC(), summary: string(fields[i+6])}
 		c.parents = strings.Fields(string(fields[i+7]))
+		c.ai = detectAISignals(c.name, c.rawEmail, string(fields[i+8]))
 		e.commits[c.sha] = c
 	}
 	// A canonical email may have several display names. Use the name from its
