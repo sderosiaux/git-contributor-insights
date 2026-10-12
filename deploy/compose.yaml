@@ -28,8 +28,15 @@ services:
     logging:
       options: {max-size: "10m", max-file: "3"}
   caddy:
-    image: caddy:2
+    build:
+      context: ./caddy
+    image: ownership-atlas-caddy:local
     restart: unless-stopped
+    read_only: true
+    cap_drop: ["ALL"]
+    cap_add: ["NET_BIND_SERVICE"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp:mode=1777,size=32m"]
     depends_on:
       atlas: {condition: service_healthy}
     environment:

@@ -103,6 +103,26 @@ git pull --ff-only
 docker compose --env-file deploy/.env -f deploy/compose.yaml up -d --build
 ```
 
+The application and HTTPS proxy use Go 1.26.9 and patched HTTP dependencies.
+The proxy is built from the pinned module in `deploy/caddy`, because the upstream
+Caddy 2.11.7 image still embeds an older Go runtime. Both services run with a
+read-only root filesystem, no privilege escalation, and restricted capabilities.
+Only Caddy publishes ports: TCP 80/443 and UDP 443 (HTTP/3). Port 8789, Caddy's
+admin endpoint, and the Docker socket must not be published or mounted.
+
+Check dependencies for newly disclosed vulnerabilities before deployment:
+
+```sh
+go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+(cd deploy/caddy && go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...)
+```
+
+Keep Docker Engine and the host's security updates current. Docker-published
+ports can bypass UFW: verify the Docker forwarding rules and test from outside
+the VM, including IPv6 when enabled. Preserve the firewall rules across Docker
+and host restarts. Do not close unrelated existing services without checking
+their intended use.
+
 The `atlas_data` volume contains `workspace.sqlite`, `repos/`, `indexes/` and
 `affiliations.yaml`, `github-app.json` and `github-app.pem`. It is private application data, including cached source and
 session credentials. Keep it on local disk with restrictive permissions. The
