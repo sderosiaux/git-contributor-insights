@@ -1,0 +1,4 @@
+{$ATLAS_HOST} {
+    encode zstd gzip
+    reverse_proxy atlas:8789
+}

@@ -43,7 +43,7 @@ func validRevisionSHA(sha string) bool {
 
 // NewIndexedHandler serves the workspace immediately while the durable index is
 // built. Queries never substitute a partial or sampled history for an index.
-func NewIndexedHandler(index IndexSource, from, to string, retry func()) (http.Handler, error) {
+func NewIndexedHandler(index IndexSource, from, to string, retry func(), options ...HandlerOptions) (http.Handler, error) {
 	var initial *ownership.Dataset
 	var initialPayload []byte
 	var initialMu sync.Mutex
@@ -318,5 +318,5 @@ func NewIndexedHandler(index IndexSource, from, to string, retry func()) (http.H
 			evidence.register(dataset)
 			writeDataset(w, r, body)
 		})
-	})
+	}, options...)
 }

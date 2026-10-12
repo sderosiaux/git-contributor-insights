@@ -221,33 +221,45 @@ func indexFingerprint(session *Session) (string, error) {
 		}
 	}
 	hash.Write(config)
-	for _, filename := range []string{filepath.Join(e.repo, ".mailmap")} {
-		content, err := os.ReadFile(filename)
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return "", err
+	if session.options.Revision != "" {
+		// Hash the content, not the commit SHA: unchanged rules reuse the index.
+		if e.mailmapBlob != "" {
+			content, err := e.git("show", e.mailmapBlob)
+			if err != nil {
+				return "", err
+			}
+			hash.Write(content)
 		}
-		hash.Write(content)
-	}
-	if config, err := e.git("config", "--get-regexp", "^(mailmap\\.|blame\\.|diff\\.)"); err == nil {
-		hash.Write(config)
-	}
-	if filename, err := e.git("config", "--path", "--get", "mailmap.file"); err == nil {
-		path := strings.TrimSpace(string(filename))
-		if !filepath.IsAbs(path) {
-			path = filepath.Join(e.repo, path)
+	} else {
+		for _, filename := range []string{filepath.Join(e.repo, ".mailmap")} {
+			content, err := os.ReadFile(filename)
+			if err != nil && !errors.Is(err, os.ErrNotExist) {
+				return "", err
+			}
+			hash.Write(content)
 		}
-		content, err := os.ReadFile(path)
-		if err != nil {
-			return "", err
+		if config, err := e.git("config", "--get-regexp", "^(mailmap\\.|blame\\.|diff\\.)"); err == nil {
+			hash.Write(config)
 		}
-		hash.Write(content)
-	}
-	if object, err := e.git("config", "--get", "mailmap.blob"); err == nil {
-		content, err := e.git("show", strings.TrimSpace(string(object)))
-		if err != nil {
-			return "", err
+		if filename, err := e.git("config", "--path", "--get", "mailmap.file"); err == nil {
+			path := strings.TrimSpace(string(filename))
+			if !filepath.IsAbs(path) {
+				path = filepath.Join(e.repo, path)
+			}
+			content, err := os.ReadFile(path)
+			if err != nil {
+				return "", err
+			}
+			hash.Write(content)
 		}
-		hash.Write(content)
+		if object, err := e.git("config", "--get", "mailmap.blob"); err == nil {
+			content, err := e.git("show", strings.TrimSpace(string(object)))
+			if err != nil {
+				return "", err
+			}
+			hash.Write(content)
+		}
+
 	}
 	if shallowPath, err := e.git("rev-parse", "--git-path", "shallow"); err == nil {
 		path := strings.TrimSpace(string(shallowPath))

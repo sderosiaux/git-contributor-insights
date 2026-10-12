@@ -2,6 +2,9 @@
 package ownership
 
 type Options struct {
+	// Revision freezes a managed checkout at an exact commit and uses that
+	// commit's mailmap. Empty preserves the local working-tree behavior.
+	Revision   string
 	Since      string
 	Until      string
 	ConfigPath string

@@ -40,15 +40,16 @@ type cutoff struct {
 	sha  string
 }
 type engine struct {
-	ctx        context.Context
-	repo       string
-	config     *affiliations
-	commits    map[string]commitInfo
-	people     map[string]Person
-	identities map[string]Person
-	activity   []activityEntry
-	workers    int
-	gitSlots   chan struct{}
+	ctx         context.Context
+	repo        string
+	config      *affiliations
+	commits     map[string]commitInfo
+	people      map[string]Person
+	identities  map[string]Person
+	activity    []activityEntry
+	workers     int
+	gitSlots    chan struct{}
+	mailmapBlob string
 	// Content classification is safe to reuse by immutable blob id. Blame is
 	// deliberately not cached by blob: a revert can recreate the same content
 	// with a different line attribution.
@@ -106,11 +107,23 @@ func NewSession(ctx context.Context, repoPath string, options Options) (*Session
 		return nil, fmt.Errorf("open repository: %w", err)
 	}
 	e.repo = strings.TrimSpace(string(root))
-	headBytes, err := e.git("rev-parse", "--verify", "HEAD^{commit}")
+	ref := "HEAD"
+	if options.Revision != "" {
+		if _, err := hex.DecodeString(options.Revision); err != nil || (len(options.Revision) != 40 && len(options.Revision) != 64) {
+			return nil, fmt.Errorf("revision must be a full commit SHA")
+		}
+		ref = options.Revision
+	}
+	headBytes, err := e.git("rev-parse", "--verify", ref+"^{commit}")
 	if err != nil {
 		return nil, fmt.Errorf("repository has no readable HEAD commit: %w", err)
 	}
 	head := strings.TrimSpace(string(headBytes))
+	if options.Revision != "" {
+		if _, err := e.git("cat-file", "-e", head+":.mailmap"); err == nil {
+			e.mailmapBlob = head + ":.mailmap"
+		}
+	}
 	data := Dataset{Repository: Repository{Name: filepath.Base(e.repo), Path: e.repo, Head: head},
 		People: []Person{}, Organizations: []Organization{}, Snapshots: []Snapshot{}, Warnings: []string{},
 		Method: Method{
@@ -241,7 +254,11 @@ func (e *engine) gitInput(input []byte, args ...string) ([]byte, error) {
 		}
 		defer func() { <-e.gitSlots }()
 	}
-	commandArgs := append([]string{"--literal-pathspecs", "-C", e.repo, "-c", "core.quotePath=false", "-c", "log.showSignature=false"}, args...)
+	commandArgs := []string{"--literal-pathspecs", "-C", e.repo, "-c", "core.quotePath=false", "-c", "log.showSignature=false"}
+	if e.mailmapBlob != "" {
+		commandArgs = append(commandArgs, "-c", "mailmap.blob="+e.mailmapBlob)
+	}
+	commandArgs = append(commandArgs, args...)
 	cmd := exec.CommandContext(e.ctx, "git", commandArgs...)
 	if input != nil {
 		cmd.Stdin = bytes.NewReader(input)

@@ -2,6 +2,28 @@
 ((root) => {
   'use strict';
   const views = ['overview', 'codebase', 'evolution', 'history'];
+  function basePath(pathname = root.location?.pathname || '') {
+    return pathname.match(/^\/r\/[A-Za-z0-9-]+\/[A-Za-z0-9_.-]+(?=\/|$)/)?.[0] || '';
+  }
+  function url(path, location = root.location) {
+    const base = basePath(location?.pathname);
+    if (!base || !path.startsWith('/') || path.startsWith('//')) return path;
+    const parsed = new URL(path.startsWith(base + '/') ? path : base + path, 'http://atlas.local');
+    const generation = new URLSearchParams(location?.search || '').get('index');
+    if (generation && /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/i.test(generation)) parsed.searchParams.set('index', generation);
+    return parsed.pathname + parsed.search + parsed.hash;
+  }
+  async function fetchAPI(path, options = {}) {
+    const headers = new Headers(options.headers || {});
+    if (options.method && options.method !== 'GET') headers.set('Content-Type', 'application/json');
+    const response = await root.fetch(url(path), {...options, headers});
+    if (response.status === 401 && basePath()) {
+      root.location.assign('/login?next=' + encodeURIComponent(root.location.pathname + root.location.search));
+      throw new Error('Sign in to continue.');
+    }
+    return response;
+  }
+
   const validTip = value => /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/i.test(value || '') ? value.toLowerCase() : '';
   const list = (actors, group) => [...(actors[group]?.values() || [])];
   const day = snapshot => new Date(snapshot.date).toISOString().slice(0, 10);
@@ -47,7 +69,7 @@
       if (state.historyTo) params.set('to', state.historyTo);
       if (state.historyOffset > 0) params.set('offset', Math.floor(state.historyOffset));
       if (validTip(state.historyCommit)) params.set('commit', validTip(state.historyCommit));
-      return '/history' + (params.size ? '?' + params.toString() : '');
+      return url('/history' + (params.size ? '?' + params.toString() : ''));
     }
     if (state.scope) params.set('path', state.scope);
     const actor = actors[state.group]?.get(state.actor);
@@ -62,12 +84,12 @@
       if (state.rangeTo ? state.rangeTo !== state.rangeDefaultTo : state.current !== snapshots.length - 1) params.set('at', state.rangeTo || snapshotDate(snapshots, state.current));
     }
     const query = params.toString();
-    return '/' + state.view + (query ? '?' + query : '');
+    return url('/' + state.view + (query ? '?' + query : ''));
   }
 
   function read(location, snapshots, actors, options = {}) {
     const state = {view:'overview', group:'people', metric:'lines', baseline:0, current:snapshots.length-1, scope:'', actor:''};
-    const route = location.pathname.replace(/^\/+|\/+$/g, '');
+    const route = location.pathname.slice(basePath(location.pathname).length).replace(/^\/+|\/+$/g, '');
     const legacy = location.hash && /(?:^#|&)(?:view|path|actor|group|metric|a|b)=/.test(location.hash);
     const params = new URLSearchParams(legacy ? location.hash.slice(1) : location.search);
     state.view = legacy ? (views.includes(params.get('view')) ? params.get('view') : params.has('path') || params.has('actor') ? 'codebase' : 'overview') : views.includes(route) ? route : 'overview';
@@ -106,7 +128,7 @@
     return state;
   }
 
-  const routes = {href, read, requestedRange, validTip};
+  const routes = {href, read, requestedRange, validTip, basePath, url, fetch:fetchAPI};
   if (typeof module !== 'undefined' && module.exports) module.exports = routes;
   else root.AtlasRoutes = routes;
 })(globalThis);

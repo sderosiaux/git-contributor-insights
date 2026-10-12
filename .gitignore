@@ -34,3 +34,9 @@ vendors.yaml
 # Keep analyzed repositories and runtime caches out of this project's source
 /repos/
 /.cache/
+
+# Hosted workspace secrets and local runtime data
+/deploy/.env
+/deploy/secrets/
+/data/
+*.pem

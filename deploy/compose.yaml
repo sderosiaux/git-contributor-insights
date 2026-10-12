@@ -1,0 +1,47 @@
+name: ownership-atlas
+services:
+  atlas:
+    build:
+      context: ..
+    image: ownership-atlas:local
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    environment:
+      ATLAS_LISTEN: 0.0.0.0:8789
+      ATLAS_DATA_DIR: /data
+      GOMEMLIMIT: ${ATLAS_MEMORY_BUDGET:-4GiB}
+    command: ["serve", "--bootstrap", "--workers", "${ATLAS_WORKERS:-8}"]
+    volumes:
+      - atlas_data:/data
+    expose: ["8789"]
+    read_only: true
+    tmpfs: ["/tmp:mode=1777,size=256m"]
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent -H \"Host: $${ATLAS_PUBLIC_URL#https://}\" http://127.0.0.1:8789/healthz >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      atlas: {condition: service_healthy}
+    environment:
+      ATLAS_HOST: ${ATLAS_HOST:?Set the hostname in deploy/.env}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+volumes:
+  atlas_data:
+  caddy_data:
+  caddy_config:

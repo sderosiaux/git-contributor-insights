@@ -14,16 +14,16 @@
     fields.forEach(key => { if(source.get(key))result.set(key,source.get(key)); });
     return result;
   };
-  function href(route, values) { const p=new URLSearchParams();for(const [key,value] of Object.entries(values))if(value)p.set(key,value);return route+(p.size?'?'+p:''); }
+  function href(route, values) { const p=new URLSearchParams();for(const [key,value] of Object.entries(values))if(value)p.set(key,value);return AtlasRoutes.url(route+(p.size?'?'+p:'')); }
   function change(values, replace=false) {
     const next=params();for(const [key,value] of Object.entries(values)){if(value)next.set(key,value);else next.delete(key);}
     if(!Object.hasOwn(values,'offset'))next.delete('offset');
-    history[replace?'replaceState':'pushState']({},'', '/ai'+(next.size?'?'+next:''));
+    history[replace?'replaceState':'pushState']({},'', AtlasRoutes.url('/ai'+(next.size?'?'+next:'')));
     peopleExpanded=false;domainsExpanded=false;load();
   }
   async function read(query, signal) {
     const key=query.toString();if(cache.has(key))return cache.get(key);
-    const response=await fetch('/api/ai'+(key?'?'+key:''),{signal});
+    const response=await AtlasRoutes.fetch('/api/ai'+(key?'?'+key:''),{signal});
     let data;try{data=await response.json();}catch(_){throw new Error('AI provenance needs the updated local explorer. Restart ghca explore and try again.');}
     if(response.status===202){throw new Error(`The repository is still indexing (${number(data.completed)} / ${number(data.total)} commits). Open Overview to follow progress, then retry.`);}
     if(!response.ok)throw new Error(data.error||'Could not read AI provenance.');
@@ -45,7 +45,7 @@
         $('ai-person').innerHTML='<option value="">Everyone</option>'+catalog.people.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${esc(p.email||p.id)}">${esc(p.name||p.email)}</option>`).join('');
         $('ai-tool').innerHTML='<option value="">Any AI tool</option>'+tools.map(tool=>`<option>${tool}</option>`).join('');
         $('repo-label').textContent=catalog.repository.name;document.title=`AI contributions · ${catalog.repository.name} · Ownership atlas`;
-        const status=await fetch('/api/index',{signal}).then(r=>r.json());if(id!==request)return;
+        const status=await AtlasRoutes.fetch('/api/index',{signal}).then(r=>r.json());if(id!==request)return;
         $('snapshot-meta').textContent=`${number(status.completed)} / ${number(status.total)} commits indexed`;
       }
       const data=await read(params(),signal);if(id!==request)return;report=data;
@@ -88,7 +88,7 @@
   for(const key of ['person','tool'])$('ai-'+key).addEventListener('change',()=>change({[key]:$('ai-'+key).value}));
   $('ai-recent').addEventListener('click',()=>{if(!catalog)return;const end=new Date(catalog.lastDate+'T00:00:00Z'),start=new Date(end);start.setUTCDate(start.getUTCDate()-89);change({from:start.toISOString().slice(0,10)<catalog.firstDate?catalog.firstDate:start.toISOString().slice(0,10),to:catalog.lastDate});});
   $('ai-all-time').addEventListener('click',()=>change({from:'',to:''}));
-  $('ai-clear').addEventListener('click',()=>{history.pushState({},'','/ai');load();});
+  $('ai-clear').addEventListener('click',()=>{history.pushState({},'',AtlasRoutes.url('/ai'));load();});
   document.addEventListener('click',event=>{
     const target=event.target.closest('button,a');if(!target)return;
     if(target.matches('a[href="#ai-method"]'))$('ai-method').open=true;

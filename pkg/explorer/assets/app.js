@@ -94,7 +94,7 @@
       card=$('loading').querySelector('.index-card');
       if(failed)$('retry-index').addEventListener('click',async()=>{
         $('retry-index').disabled=true;
-        try { const response=await fetch('/api/index/retry',{method:'POST'});if(!response.ok&&response.status!==202)throw new Error(`Unable to resume indexing (${response.status}).`);location.reload(); }
+        try { const response=await AtlasRoutes.fetch('/api/index/retry',{method:'POST'});if(!response.ok&&response.status!==202)throw new Error(`Unable to resume indexing (${response.status}).`);location.reload(); }
         catch(error){renderIndexStatus({...status,error:error.message});$('retry-index').disabled=false;}
       });
     }
@@ -126,7 +126,7 @@
     while(true){
       if(!status){
         try {
-          const response=await fetch('/api/index',{signal});if(response.status===404)return null;if(!response.ok)throw new Error(`The local index returned ${response.status}.`);status=await response.json();failures=0;
+          const response=await AtlasRoutes.fetch('/api/index',{signal});if(response.status===404)return null;if(!response.ok)throw new Error(`The local index returned ${response.status}.`);status=await response.json();failures=0;
         } catch(error){
           if(error.name==='AbortError')throw error;
           ++failures;
@@ -149,7 +149,7 @@
   }
   async function readOwnership(params,signal) {
     while(true){
-      const response=await fetch('/api/ownership'+(params?'?'+params:''),{signal});
+      const response=await AtlasRoutes.fetch('/api/ownership'+(params?'?'+params:''),{signal});
       if(response.status===202){await waitForIndex(await response.json(),signal);continue;}
       if(!response.ok){let message=`The index query failed (${response.status}).`;try{const body=await response.json();message=body.error||message;}catch(_){}throw new Error(message);}
       const payload=await response.json();
@@ -351,7 +351,7 @@
     const params=new URLSearchParams({offset:state.historyOffset,limit:commitList.limit});
     if(state.historyQuery)params.set('q',state.historyQuery);if(state.historyFrom)params.set('from',state.historyFrom);if(state.historyTo)params.set('to',state.historyTo);
     try {
-      const response=await fetch('/api/commits?'+params,{signal:controller.signal});
+      const response=await AtlasRoutes.fetch('/api/commits?'+params,{signal:controller.signal});
       if(!response.ok){let message=`Unable to read commits (${response.status}).`;try{message=(await response.json()).error||message;}catch(_){}throw new Error(message);}
       const payload=await response.json();if(request!==commitList.request||key!==commitsKey()||state.view!=='history')return;
       if(!Array.isArray(payload.commits))throw new Error('The index returned an invalid commit list.');
@@ -621,7 +621,7 @@
     stopSourceRequest();const request=sourceCode.request,controller=new AbortController();sourceCode.controller=controller;
     sourceCode.key=key;sourceCode.data=null;sourceCode.error='';sourceCode.status='loading';sourceCode.renderKey='';renderSource();
     try {
-      const response=await fetch('/api/source?'+new URLSearchParams({sha:snapshot.revision,path}),{signal:controller.signal});
+      const response=await AtlasRoutes.fetch('/api/source?'+new URLSearchParams({sha:snapshot.revision,path}),{signal:controller.signal});
       if(response.status!==200){let message='Could not load the code at this revision.';try{message=(await response.json()).error||message;}catch(_){}throw new Error(message);}
       const file=await response.json();if(request!==sourceCode.request||key!==sourceCode.key)return;
       if(file.revision!==snapshot.revision||file.path!==path||!Array.isArray(file.lines)||!Array.isArray(file.blocks))throw new Error('The source does not match the selected file and revision.');
@@ -689,7 +689,7 @@
     $('actors-title').textContent=state.group==='people'?'Contributor':'Organization';
     $('actors-subtitle').textContent=`At ${formatDate(data.snapshots[state.current].date)}`;
     $('actor-count').hidden=true;
-    $('actor-list').innerHTML=`<section class="actor-profile"><div class="profile-heading"><span class="profile-avatar" aria-hidden="true">${esc(actorInitials(actor).toUpperCase())}</span><div class="profile-identity"><h3 tabindex="-1">${esc(actor.name||name(state.actor))}</h3><p>${esc(identity)}</p>${actor.identityBasis==='matching-name'?'<small class="identity-basis">Grouped by matching name</small>':''}</div></div><div class="profile-metrics"><div class="profile-metric"><span>${state.metric==='lines'?'Attributed lines':'Changed lines'}</span><strong>${number(attributed)}</strong><small>${after.total?`${percent(pct(attributed,after.total))} of this scope`:'No included lines at this date'}</small></div><div class="profile-metric"><span>Included files</span><strong>${number(includedFiles)}</strong><small>With ${state.metric==='lines'?'surviving code':'recent changes'}</small></div></div><div class="profile-context"><span>In this scope</span><p>${esc(scope)}</p><small>Share uses all ${number(after.total)} ${metricUnit()} included here.${state.group==='organizations'&&state.actor==='unknown'?' Unknown affiliation means no configured rule matched.':''}</small></div><div class="profile-actions"><button class="primary-button" data-view="evolution">Trace over time <span aria-hidden="true">↗</span></button><button class="quiet-button" data-open-evidence>View supporting commits <span aria-hidden="true">↓</span></button>${state.group==='people'?`<a class="quiet-button profile-ai-link" href="/ai?${esc(new URLSearchParams({person:actor.email||actor.id,path:state.scope,to:state.rangeTo}).toString())}">Explore AI declarations ↗</a>`:''}<button class="quiet-button" data-clear-actor>All ${state.group==='people'?'contributors':'organizations'} <span aria-hidden="true">←</span></button></div></section>`;
+    $('actor-list').innerHTML=`<section class="actor-profile"><div class="profile-heading"><span class="profile-avatar" aria-hidden="true">${esc(actorInitials(actor).toUpperCase())}</span><div class="profile-identity"><h3 tabindex="-1">${esc(actor.name||name(state.actor))}</h3><p>${esc(identity)}</p>${actor.identityBasis==='matching-name'?'<small class="identity-basis">Grouped by matching name</small>':''}</div></div><div class="profile-metrics"><div class="profile-metric"><span>${state.metric==='lines'?'Attributed lines':'Changed lines'}</span><strong>${number(attributed)}</strong><small>${after.total?`${percent(pct(attributed,after.total))} of this scope`:'No included lines at this date'}</small></div><div class="profile-metric"><span>Included files</span><strong>${number(includedFiles)}</strong><small>With ${state.metric==='lines'?'surviving code':'recent changes'}</small></div></div><div class="profile-context"><span>In this scope</span><p>${esc(scope)}</p><small>Share uses all ${number(after.total)} ${metricUnit()} included here.${state.group==='organizations'&&state.actor==='unknown'?' Unknown affiliation means no configured rule matched.':''}</small></div><div class="profile-actions"><button class="primary-button" data-view="evolution">Trace over time <span aria-hidden="true">↗</span></button><button class="quiet-button" data-open-evidence>View supporting commits <span aria-hidden="true">↓</span></button>${state.group==='people'?`<a class="quiet-button profile-ai-link" href="${esc(AtlasRoutes.url('/ai?'+new URLSearchParams({person:actor.email||actor.id,path:state.scope,to:state.rangeTo})))}">Explore AI declarations ↗</a>`:''}<button class="quiet-button" data-clear-actor>All ${state.group==='people'?'contributors':'organizations'} <span aria-hidden="true">←</span></button></div></section>`;
   }
   function renderChangeFocus(before,after) {
     const panel=$('change-focus');if(!panel)return;
@@ -833,14 +833,14 @@
     dialog.innerHTML=`<div class="dialog-heading"><div><div class="eyebrow">EXACT INDEXED COMMIT</div><h2 id="revision-title">${esc(String(point.revision).slice(0,12))}</h2><p class="proof-meta">${esc(scope||'Entire repository')}${point.date?' · '+esc(formatDate(point.date))+' · '+esc(formatTime(point.date))+' UTC':''}</p><div id="revision-commit-meta"></div></div><button class="icon-button" data-close-revision aria-label="Close revision inspector">×</button></div>${peers.length>1?`<div class="revision-peers"><span>${number(peers.length)} revisions share this visibility time. Each has its own code state.</span><div>${peers.map(item=>`<button class="quiet-button ${item.revision===point.revision?'is-current':''}" data-inspect-sha="${esc(item.revision)}" aria-pressed="${item.revision===point.revision}">${esc(String(item.revision).slice(0,10))}</button>`).join('')}</div></div>`:''}<div class="revision-content" id="revision-content" role="status">Reading this commit from the local index…</div><div class="dialog-footer revision-footer"><span>This is the code at one exact SHA.</span><a class="primary-button" href="${esc(historyHref(point.revision))}">Explore this history ↗</a></div>`;
     if(!dialog.open)dialog.showModal();dialog.querySelector('[data-close-revision]').focus();
     try {
-      const response=await fetch('/api/revision?'+new URLSearchParams({sha:point.revision}),{signal:controller.signal});
+      const response=await AtlasRoutes.fetch('/api/revision?'+new URLSearchParams({sha:point.revision}),{signal:controller.signal});
       if(!response.ok){let message=`Unable to read this revision (${response.status}).`;try{message=(await response.json()).error||message;}catch(_){}throw new Error(message);}
       const payload=await response.json();if(!dialog.open||request!==revisionRequest)return;
       const snapshot=payload.snapshots?.[0];if(!snapshot)throw new Error('The index returned no code state for this revision.');
       dialog.querySelector('.proof-meta').textContent=`${scope||'Entire repository'} · ${formatDate(snapshot.date)} · ${formatTime(snapshot.date)} UTC`;
       const commit=payload.commit||point.commit;
       if(commit)$('revision-commit-meta').innerHTML=`<p class="revision-message">${esc(commit.summary||'Untitled commit')}</p><p class="revision-author">${esc(commit.authorName||commit.authorEmail||'Unknown author')}${commit.authorEmail?' · '+esc(commit.authorEmail):''} · <span class="history-badge ${commit.mainline?'is-mainline':''}">${commit.mainline?'HEAD first-parent':'Side history'}</span></p><div class="revision-parents"><span>${(commit.parents||[]).length?'Parents':'Root commit · no parents'}</span>${(commit.parents||[]).map((sha,index)=>`<button class="quiet-button" data-inspect-sha="${esc(sha)}" aria-label="Inspect parent ${index+1}, ${esc(sha)}">${esc(String(sha).slice(0,10))}${index===0?' · first parent':''} ↗</button>`).join('')}</div>`;
-      if(commit?.ai?.length)$('revision-commit-meta').insertAdjacentHTML('beforeend',`<div class="commit-ai-proof"><div>${aiBadges(commit.ai)}</div><p>Declared assistance applies to the commit, not necessarily every line.</p><details><summary>Original AI attribution markers</summary>${commit.ai.map(signal=>`<pre>${esc(signal.evidence)}</pre>`).join('')}</details><a href="/ai?${esc(new URLSearchParams({person:commit.authorEmail}).toString())}">Explore this author's AI declarations ↗</a></div>`);
+      if(commit?.ai?.length)$('revision-commit-meta').insertAdjacentHTML('beforeend',`<div class="commit-ai-proof"><div>${aiBadges(commit.ai)}</div><p>Declared assistance applies to the commit, not necessarily every line.</p><details><summary>Original AI attribution markers</summary>${commit.ai.map(signal=>`<pre>${esc(signal.evidence)}</pre>`).join('')}</details><a href="${esc(AtlasRoutes.url('/ai?'+new URLSearchParams({person:commit.authorEmail})))}">Explore this author's AI declarations ↗</a></div>`);
       const files=(snapshot.files||[]).filter(file=>!scope||file.path===scope||file.path.startsWith(scope+'/'));
       const names=new Map((payload[group]||[]).map(actor=>[actor.id,actor.name+(group==='people'&&duplicateNames.has(actor.name)?` (${actor.email||actor.id})`:'')]));
       const label=id=>names.get(id)||actors[group].get(id)?.name||id||'Unknown';
@@ -860,7 +860,7 @@
     previousFocus=document.activeElement;
     dialog.innerHTML=`<div class="dialog-heading"><div><div class="eyebrow">GIT EVIDENCE · ${state.view==='codebase'?'At selected date':evidence.sides.map(side=>side==='A'?'Start':'End').join(' + ')}</div><h2 id="proof-title">${esc(evidence.summary||'Commit evidence')}</h2><p class="proof-meta">${esc(String(evidence.sha).slice(0,12))} · ${esc(formatDate(evidence.date))} · ${esc(evidence.path)}</p></div><button class="icon-button" data-close-proof aria-label="Close commit evidence">✕</button></div><div id="proof-content" class="proof-content" role="status">Loading the local Git patch…</div>`;
     dialog.showModal();dialog.querySelector('[data-close-proof]').focus();
-    try {const response=await fetch('/api/commit?'+new URLSearchParams({sha:evidence.sha,path:evidence.path}));if(!response.ok){let message=`Unable to read this patch (${response.status}).`;try{const payload=await response.json();message=payload.error||message;}catch(_){}throw new Error(message);}const proof=await response.json();if(!dialog.open||request!==proofRequest)return;$('proof-content').innerHTML=`${proof.truncated?'<p class="patch-notice">This patch is truncated. Inspect the commit locally for the complete change.</p>':''}${proof.patch?`<pre class="patch-code">${String(proof.patch).split('\n').map(line=>`<span class="${line.startsWith('+')&&!line.startsWith('+++')?'patch-add':line.startsWith('-')&&!line.startsWith('---')?'patch-remove':line.startsWith('@@')?'patch-hunk':''}">${esc(line)}</span>`).join('\n')}</pre>`:'<p>No textual patch is available for this path at this commit. It may be a rename, binary file, or merge.</p>'}`;}
+    try {const response=await AtlasRoutes.fetch('/api/commit?'+new URLSearchParams({sha:evidence.sha,path:evidence.path}));if(!response.ok){let message=`Unable to read this patch (${response.status}).`;try{const payload=await response.json();message=payload.error||message;}catch(_){}throw new Error(message);}const proof=await response.json();if(!dialog.open||request!==proofRequest)return;$('proof-content').innerHTML=`${proof.truncated?'<p class="patch-notice">This patch is truncated. Inspect the commit locally for the complete change.</p>':''}${proof.patch?`<pre class="patch-code">${String(proof.patch).split('\n').map(line=>`<span class="${line.startsWith('+')&&!line.startsWith('+++')?'patch-add':line.startsWith('-')&&!line.startsWith('---')?'patch-remove':line.startsWith('@@')?'patch-hunk':''}">${esc(line)}</span>`).join('\n')}</pre>`:'<p>No textual patch is available for this path at this commit. It may be a rename, binary file, or merge.</p>'}`;}
     catch(error){if(dialog.open&&request===proofRequest)$('proof-content').innerHTML=`<div class="empty-state"><h3>Patch unavailable</h3><p>${esc(error.message)}</p><p>Inspect <code>${esc(String(evidence.sha).slice(0,12))}</code> locally to verify the evidence.</p></div>`;}
   }
 

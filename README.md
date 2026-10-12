@@ -2,9 +2,26 @@
 
 Explore **who contributed the code that exists today, and how that attribution changed over time** — by person, organization, directory, and file.
 
-The local **Ownership atlas** gives each question its own workspace: an overview to choose where to investigate, a codebase explorer to understand one snapshot, an evolution view to compare dates, and a commit catalogue to inspect work across merged branches. It runs from one Go binary, serves only on localhost, and never uploads or modifies the analyzed repository.
+The local **Ownership atlas** gives each question its own workspace: an overview to choose where to investigate, a codebase explorer to understand one snapshot, an evolution view to compare dates, and a commit catalogue to inspect work across merged branches. The local mode runs from one Go binary, serves only on localhost, and never uploads or modifies the analyzed repository. A separate hosted mode provides an authenticated, shared workspace with multiple GitHub repositories.
 
 ![Apache Kafka ownership overview](docs/ownership-kafka-overview.png)
+
+## Shared workspace on your own server
+
+`ghca serve` provides GitHub sign-in, a repository picker, UI imports from a
+GitHub App or public GitHub URLs, manual/scheduled/push-triggered refresh, and
+links that preserve the exact indexed version. Administrators manage repositories
+and schedules; authorized workspace members can view all imported code.
+
+Indexing runs in a separate worker process with one global concurrency budget.
+SQLite persists the job queue and per-repository commit states. The previous
+completed analysis remains available while a new version indexes. Docker Compose
+includes a non-root application container, persistent private storage and Caddy
+for HTTPS. Managed clones and indexes stay outside this public source repository.
+
+See **[Deploy on a VM](deploy/README.md)** for the GitHub App permissions, access
+policy, Docker setup and backups. Production startup requires configured GitHub
+authentication and HTTPS. A loopback-only `--dev` mode supports local UI previews.
 
 ## Get started
 
@@ -20,7 +37,7 @@ This is a local application: the Go binary includes the browser UI and listens o
 
 Keep repositories being analyzed outside this project's checkout, for example in `~/code/kafka`. The public project contains the application, tests, documentation and example affiliation configurations. Analyzed checkouts and generated SQLite indexes are local runtime data, not part of the project. Indexes default to the operating system's user cache directory and are isolated by repository path.
 
-Today, each explorer instance opens one repository. Several repositories can run locally on different `--port` values, each with its own index. A repository picker within one application is a future extension: it should register external local checkouts and keep their indexes separate, without embedding those repositories in this project.
+Each local `explore` instance opens one repository. For a shared multi-repository workspace, use `ghca serve` with GitHub authentication; see [deployment and setup](deploy/README.md).
 
 Choose the history and resolution you need:
 

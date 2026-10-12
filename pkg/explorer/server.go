@@ -111,7 +111,18 @@ func (e *evidenceRegistry) register(dataset *ownership.Dataset) {
 	}
 }
 
-func newWorkspaceHandler(registerAPI func(*http.ServeMux, *evidenceRegistry)) (http.Handler, error) {
+// HandlerOptions is for an authenticated outer server. The caller must protect
+// every route and enforce its public origin when Hosted is true.
+type HandlerOptions struct {
+	Hosted   bool
+	BasePath string
+}
+
+func newWorkspaceHandler(registerAPI func(*http.ServeMux, *evidenceRegistry), options ...HandlerOptions) (http.Handler, error) {
+	var opts HandlerOptions
+	if len(options) > 0 {
+		opts = options[0]
+	}
 	static, err := fs.Sub(assets, "assets")
 	if err != nil {
 		return nil, err
@@ -149,6 +160,26 @@ func newWorkspaceHandler(registerAPI func(*http.ServeMux, *evidenceRegistry)) (h
 	})
 	files := http.FileServer(http.FS(static))
 	mux.Handle("GET /", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if opts.Hosted {
+			filename := "index.html"
+			if r.URL.Path == "/ai" {
+				filename = "ai.html"
+			}
+			switch r.URL.Path {
+			case "/", "/overview", "/codebase", "/evolution", "/history", "/ai":
+				body, err := fs.ReadFile(static, filename)
+				if err != nil {
+					http.Error(w, "Page unavailable", 500)
+					return
+				}
+				page := strings.ReplaceAll(string(body), `href="/`, `href="`+opts.BasePath+`/`)
+				page = strings.ReplaceAll(page, `src="/`, `src="`+opts.BasePath+`/`)
+				page = strings.Replace(page, "</head>", `<script src="/hosted/explorer.js" defer></script><link rel="stylesheet" href="/hosted/explorer.css"></head>`, 1)
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				_, _ = w.Write([]byte(page))
+				return
+			}
+		}
 		switch r.URL.Path {
 		case "/ai":
 			page := r.Clone(r.Context())
@@ -180,7 +211,7 @@ func newWorkspaceHandler(registerAPI func(*http.ServeMux, *evidenceRegistry)) (h
 			host = value
 		}
 		ip := net.ParseIP(strings.Trim(host, "[]"))
-		if !strings.EqualFold(host, "localhost") && (ip == nil || !ip.IsLoopback()) {
+		if !opts.Hosted && !strings.EqualFold(host, "localhost") && (ip == nil || !ip.IsLoopback()) {
 			http.Error(w, "Use the localhost address printed by ghca.", http.StatusForbidden)
 			return
 		}

@@ -152,3 +152,13 @@ test('an exact commit deep link preserves catalogue filters and its full SHA', (
   assert.equal(routes.href({...restored,historyCommit:''},snapshots,actors),'/history?q=merge&from=2020-01-01&offset=40');
   assert.equal(read('/history?commit=HEAD').historyCommit,'');
 });
+
+test('hosted URLs preserve the repository and exact indexed generation', () => {
+  const routes = require('./assets/routes.js');
+  const index = 'a'.repeat(40);
+  const location = {pathname:'/r/conduktor/console-plus/evolution',search:'?index='+index};
+  assert.equal(routes.basePath(location.pathname), '/r/conduktor/console-plus');
+  assert.equal(routes.url('/api/ownership?from=2024-01-01',location), '/r/conduktor/console-plus/api/ownership?from=2024-01-01&index='+index);
+  assert.equal(routes.url('/r/conduktor/console-plus/ai',location), '/r/conduktor/console-plus/ai?index='+index);
+  assert.equal(routes.url('/codebase?path=src%2Fa.ts', {pathname:'/codebase',search:''}), '/codebase?path=src%2Fa.ts');
+});
